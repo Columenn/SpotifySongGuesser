@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let playlistId = null;
     let playlistTracks = [];
     let currentTrack = null;
-    let isPlaying = false;
+    let hiddenWindow = null;
     
     // DOM Elements
     const playlistInput = document.getElementById('playlist-input');
@@ -49,7 +49,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetGameState() {
         playlistTracks = [];
         currentTrack = null;
-        isPlaying = false;
+        if (hiddenWindow) {
+            hiddenWindow.close();
+            hiddenWindow = null;
+        }
         gameSection.classList.add('hidden');
         playlistInput.classList.remove('hidden');
         songInfo.classList.add('hidden');
@@ -74,18 +77,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function fetchPlaylistTracks() {
         try {
-            // First verify we have a valid access token
             if (!accessToken || accessToken === 'undefined') {
                 throw new Error('No valid access token found. Please refresh the page to reauthenticate.');
             }
-    
-            // Verify playlist ID format
+
             if (!playlistId || !/^[a-zA-Z0-9]+$/.test(playlistId)) {
                 throw new Error('Invalid playlist ID format. Please check the playlist URL.');
             }
-    
+
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
                 headers: {
@@ -95,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             clearTimeout(timeoutId);
-    
+
             if (!response.ok) {
                 let errorDetails = '';
                 try {
@@ -153,19 +154,36 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const randomIndex = Math.floor(Math.random() * playlistTracks.length);
         currentTrack = playlistTracks[randomIndex];
-        isPlaying = false;
         
-        // Try to open in Spotify app
-        window.location.href = `spotify:track:${currentTrack.id}`;
+        // Close any existing hidden window
+        if (hiddenWindow) {
+            hiddenWindow.close();
+        }
         
-        // Fallback to web player if needed
-        setTimeout(() => {
-            if (!isPlaying) {
-                window.open(`https://open.spotify.com/track/${currentTrack.id}`, '_blank');
-            }
-        }, 500);
+        // Try to open Spotify app directly
+        try {
+            window.location.href = `spotify:track:${currentTrack.id}:play`;
+            
+            // Fallback to hidden window if app doesn't open
+            setTimeout(() => {
+                if (!document.hidden) { // If we're still visible, app didn't open
+                    hiddenWindow = window.open(
+                        `https://open.spotify.com/track/${currentTrack.id}`,
+                        '_blank',
+                        'noopener,noreferrer,width=1,height=1,left=-1000,top=-1000'
+                    );
+                }
+            }, 200);
+        } catch (e) {
+            console.error('Error opening Spotify:', e);
+            hiddenWindow = window.open(
+                `https://open.spotify.com/track/${currentTrack.id}`,
+                '_blank',
+                'noopener,noreferrer,width=1,height=1,left=-1000,top=-1000'
+            );
+        }
         
-        playerStatus.textContent = "Playing...";
+        playerStatus.textContent = "Now playing...";
         playerStatus.classList.remove('hidden');
         revealBtn.classList.remove('hidden');
         songInfo.classList.add('hidden');
@@ -184,10 +202,10 @@ document.addEventListener('DOMContentLoaded', function() {
         nextSongBtn.classList.remove('hidden');
     }
     
-    // Listen for visibility changes to detect if Spotify app opened
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            isPlaying = true;
+    // Clean up hidden window when page unloads
+    window.addEventListener('beforeunload', function() {
+        if (hiddenWindow) {
+            hiddenWindow.close();
         }
     });
 });
