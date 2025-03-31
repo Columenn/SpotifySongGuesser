@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
             window.history.pushState({}, document.title, window.location.pathname);
             loadSpotifySDK();
         } else if (!accessToken) {
-            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private%20streaming%20user-read-playback-state%20user-modify-playback-state`;
+            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private streaming user-read-playback-state user-modify-playback-state`;
             window.location.href = authUrl;
         }
     }
