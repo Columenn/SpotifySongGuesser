@@ -8,6 +8,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    position: relative;
 }
 
 .container {
@@ -59,10 +60,10 @@ button:hover {
     background-color: #1ed760;
 }
 
-.player-container {
-    margin: 30px auto;
-    min-height: 80px;
-    width: 300px;
+#player-status {
+    margin: 20px 0;
+    min-height: 20px;
+    color: #b3b3b3;
 }
 
 #song-info {
@@ -96,4 +97,12 @@ button:hover {
 
 #next-song {
     margin-top: 20px;
+}
+
+.version {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    color: #535353;
+    font-size: 12px;
 }
