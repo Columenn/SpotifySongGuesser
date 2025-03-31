@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97'; // Replace with your Spotify Client ID
-    const redirectUri = 'http://localhost:8000'; // Must match your Spotify app settings
+    const redirectUri = 'https://columenn.github.io/SpotifySongGuesser/'; // Must match your Spotify app settings
     
     let accessToken = null;
     let playlistId = null;
