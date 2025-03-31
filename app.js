@@ -4,10 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const redirectUri = 'https://columenn.github.io/SpotifySongGuesser/';
     
     let accessToken = null;
-    let playlistId = '2WQxrq5bmHMlVuzvtwwywV'; // Default playlist ID
+    let playlistId = '2WQxrq5bmHMlVuzvtwwywV'; // Default playlist
     let playlistTracks = [];
     let currentTrack = null;
-    let audio = new Audio();
+    let player;
     
     // DOM Elements
     const playlistInput = document.getElementById('playlist-input');
@@ -37,11 +37,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (token) {
             accessToken = token;
             window.history.pushState({}, document.title, window.location.pathname);
+            initializePlayer();
             fetchPlaylistTracks(); // Auto-load default playlist
         } else if (!accessToken) {
-            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private`;
+            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private user-modify-playback-state`;
             window.location.href = authUrl;
         }
+    }
+    
+    function initializePlayer() {
+        // Load Spotify Web Playback SDK
+        const script = document.createElement('script');
+        script.src = 'https://sdk.scdn.co/spotify-player.js';
+        document.head.appendChild(script);
+        
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            player = new Spotify.Player({
+                name: 'Song Guesser',
+                getOAuthToken: cb => { cb(accessToken); }
+            });
+            
+            player.connect();
+        };
     }
     
     function loadPlaylist() {
@@ -68,10 +85,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             playlistTracks = data.items
                 .map(item => item.track)
-                .filter(track => track && track.preview_url);
+                .filter(track => track && track.id); // No need for preview_url filter
             
             if (playlistTracks.length === 0) {
-                throw new Error('No tracks with audio previews found');
+                throw new Error('Playlist is empty');
             }
             
             playlistInput.classList.add('hidden');
@@ -83,17 +100,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function playRandomSong() {
+    async function playRandomSong() {
         if (playlistTracks.length === 0) return;
         
         const randomIndex = Math.floor(Math.random() * playlistTracks.length);
         currentTrack = playlistTracks[randomIndex];
         
+        // Hide embed initially
         spotifyPlayerContainer.innerHTML = '';
-        audio.pause();
-        audio = new Audio(currentTrack.preview_url);
-        audio.play().catch(e => console.log('Auto-play prevented:', e));
         
+        // Play track on user's active device
+        try {
+            await fetch(`https://api.spotify.com/v1/me/player/play`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    uris: [`spotify:track:${currentTrack.id}`],
+                    position_ms: 0
+                })
+            });
+        } catch (error) {
+            console.error('Playback error:', error);
+            alert('Please open Spotify on your device first');
+        }
+        
+        // Reset UI
         songInfo.classList.add('hidden');
         revealBtn.classList.remove('hidden');
         nextSongBtn.classList.add('hidden');
@@ -102,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function revealSong() {
         if (!currentTrack) return;
         
+        // Show embed
         spotifyPlayerContainer.innerHTML = `
             <iframe id="spotify-player" 
                     src="https://open.spotify.com/embed/track/${currentTrack.id}" 
@@ -109,10 +144,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     allowtransparency="true"></iframe>
         `;
         
+        // Set song info
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
         yearSpan.textContent = currentTrack.album.release_date.split('-')[0];
         songNameSpan.textContent = currentTrack.name;
         
+        // Update UI
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
         nextSongBtn.classList.remove('hidden');
