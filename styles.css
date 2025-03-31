@@ -52,8 +52,7 @@ button:hover {
 
 .player-container {
     margin: 30px auto;
-    width: 300px;
-    height: 80px;
+    min-height: 80px;
 }
 
 #song-info {
@@ -87,4 +86,9 @@ button:hover {
 
 #next-song {
     margin-top: 20px;
+}
+
+/* For the audio player (invisible) */
+audio {
+    display: none;
 }
