@@ -213,6 +213,11 @@ button:hover {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
+/* Hidden by default, only shown when game starts */
+.hidden .player-controls-container {
+    display: none;
+}
+
 .player-controls {
     display: flex;
     align-items: center;
@@ -241,6 +246,7 @@ button:hover {
     transform: scale(1.1);
 }
 
+/* Improved slider handle quality */
 #volume-slider {
     flex-grow: 1;
     height: 5px;
@@ -253,17 +259,20 @@ button:hover {
 
 #volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: white;
     cursor: pointer;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
 }
 
 #volume-slider::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: white;
     cursor: pointer;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
 }
+
