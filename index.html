@@ -13,7 +13,13 @@
         
         <div id="playlist-input" class="input-section">
             <div class="input-row">
-                <input type="text" id="playlist-url" placeholder="Enter Spotify Playlist URL" value="https://open.spotify.com/playlist/2WQxrq5bmHMlVuzvtwwywV">
+                <input type="url" 
+                       id="playlist-url" 
+                       placeholder="Enter Spotify Playlist URL" 
+                       value="https://open.spotify.com/playlist/2WQxrq5bmHMlVuzvtwwywV"
+                       autocorrect="off"
+                       autocapitalize="none"
+                       spellcheck="false">
                 <button id="load-playlist">▶</button>
             </div>
             <p class="note">Note: You need a Spotify Premium account to play songs</p>
@@ -35,7 +41,7 @@
         </div>
     </div>
 
-    <div class="version">v1.2.9</div>
+    <div class="version">v1.2.10</div>
 
     <script src="app.js"></script>
 </body>

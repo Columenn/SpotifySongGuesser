@@ -48,6 +48,9 @@ input {
     font-size: 16px;
     max-width: 100%;
     box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 
 button {
@@ -127,7 +130,16 @@ button:hover {
     font-size: 10px;
 }
 
-/* Responsive adjustments */
+/* iOS specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    input {
+        font-size: 16px !important;
+    }
+    input:focus {
+        font-size: 16px !important;
+    }
+}
+
 @media (max-height: 700px) {
     .container {
         transform: scale(0.9);
