@@ -158,21 +158,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function fetchPlaylistTracks() {
         try {
+            // First verify we have a valid access token
+            if (!accessToken || accessToken === 'undefined') {
+                throw new Error('No valid access token found. Please refresh the page to reauthenticate.');
+            }
+    
+            // Verify playlist ID format
+            if (!playlistId || !/^[a-zA-Z0-9]+$/.test(playlistId)) {
+                throw new Error('Invalid playlist ID format. Please check the playlist URL.');
+            }
+    
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
-                }
+                },
+                signal: controller.signal
             });
             
+            clearTimeout(timeoutId);
+    
             if (!response.ok) {
-                // Get more details from the response if available
                 let errorDetails = '';
                 try {
                     const errorData = await response.json();
                     errorDetails = errorData.error?.message || '';
-                } catch (e) {}
+                    if (errorData.error?.status === 403) {
+                        errorDetails += ' - Make sure the playlist is not private';
+                    }
+                } catch (e) {
+                    console.error('Error parsing error response:', e);
+                }
                 
-                throw new Error(`Failed to fetch playlist (Status: ${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
+                throw new Error(`Spotify API request failed (Status: ${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
             }
             
             const data = await response.json();
@@ -181,31 +201,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 .filter(track => track && track.id);
             
             if (playlistTracks.length === 0) {
-                throw new Error('Playlist is empty or contains no playable tracks');
+                throw new Error('Playlist is empty or contains no playable tracks. Note: Podcast episodes are not supported.');
             }
             
             playlistInput.classList.add('hidden');
             gameSection.classList.remove('hidden');
             playRandomSong();
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Detailed error:', error);
             
-            // Construct detailed error message
-            let errorMessage = 'An error occurred';
+            let errorMessage = 'An error occurred while loading the playlist';
             
-            if (error.message.includes('Failed to fetch')) {
-                errorMessage = 'Network error: Could not connect to Spotify servers. Please check your internet connection.';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Request timed out. The Spotify servers might be slow or your connection might be unstable.';
+            } else if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Network error. This could mean:';
+                errorMessage += '\n1. Spotify API is temporarily unavailable';
+                errorMessage += '\n2. Your network is blocking the request';
+                errorMessage += '\n3. There\'s a CORS issue (try refreshing)';
+                errorMessage += '\n4. Your ad blocker might be interfering';
             } else if (error.message.includes('401')) {
-                errorMessage = 'Authentication failed: Your session may have expired. Please refresh the page and try again.';
-            } else if (error.message.includes('403')) {
-                errorMessage = 'Access denied: You may not have permission to access this playlist.';
-            } else if (error.message.includes('404')) {
-                errorMessage = 'Playlist not found: The playlist URL may be incorrect or the playlist may have been deleted.';
+                errorMessage = 'Authentication expired. Please refresh the page to get a new access token.';
+            } else if (error.message.includes('invalid playlist')) {
+                errorMessage = 'Invalid playlist URL. Make sure you\'re using a valid Spotify playlist link.';
             } else {
                 errorMessage = error.message;
             }
             
-            alert(`Error: ${errorMessage}`);
+            alert(`Error: ${errorMessage}\n\nIf the problem persists, try:\n1. Refreshing the page\n2. Checking Spotify's status at status.spotify.com\n3. Trying a different playlist`);
         }
     }
     
