@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (token) {
             accessToken = token;
+            localStorage.setItem("spotify_access_token", token);
             window.history.pushState({}, document.title, window.location.pathname);
             loadSpotifySDK();
         } else if (!accessToken) {
@@ -49,68 +50,78 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function loadSpotifySDK() {
         if (window.Spotify) {
-            console.log("Spotify Web Playback SDK is available.");
+            console.log("Spotify Web Playback SDK is already available.");
             initializePlayer();
-        } else {
-            console.log("Spotify Web Playback SDK is not available. Loading...");
-            const script = document.createElement("script");
-            script.src = "https://sdk.scdn.co/spotify-player.js";
-            script.onload = () => initializePlayer();
-            script.onerror = () => console.error("Failed to load Spotify Web Playback SDK.");
-            document.head.appendChild(script);
+            return;
         }
+        
+        console.log("Loading Spotify Web Playback SDK...");
+        const script = document.createElement("script");
+        script.src = "https://sdk.scdn.co/spotify-player.js";
+        script.async = true;
+        
+        script.onload = () => {
+            console.log("Spotify Web Playback SDK loaded successfully.");
+        };
+        
+        script.onerror = () => {
+            console.error("Failed to load Spotify Web Playback SDK.");
+        };
+        
+        document.head.appendChild(script);
+        
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            console.log("Spotify Web Playback SDK is ready to initialize.");
+            initializePlayer();
+        };
     }
 
     function initializePlayer() {
-        console.log("Initializing Spotify Web Playback SDK...");
+        console.log("Initializing Spotify Player...");
     
-        if (!window.Spotify) {
-            console.error("Spotify Web Playback SDK is not available yet!");
+        const token = localStorage.getItem("spotify_access_token");
+        if (!token) {
+            console.error("No Spotify access token found.");
             return;
         }
     
-        window.onSpotifyWebPlaybackSDKReady = () => {
-            console.log("Spotify Web Playback SDK is ready.");
+        player = new Spotify.Player({
+            name: "Spotify Song Guesser",
+            getOAuthToken: cb => { cb(token); },
+            volume: 0.5
+        });
     
-            player = new Spotify.Player({
-                name: "Spotify Song Guesser",
-                getOAuthToken: cb => { cb(accessToken); },
-                volume: 0.5
-            });
+        player.addListener("ready", async ({ device_id }) => {
+            console.log(`Player is ready. Device ID: ${device_id}`);
     
-            player.addListener("ready", async ({ device_id }) => {
-                console.log(`Player is ready. Device ID: ${device_id}`);
+            if (device_id) {
                 deviceId = device_id;
-                await transferPlaybackToDevice(deviceId);
-                playerStatus.textContent = "Player connected";
-            });
+                localStorage.setItem("spotify_device_id", deviceId);
+                await transferPlaybackToDevice(deviceId, token);
+            }
+        });
     
-            player.addListener("not_ready", ({ device_id }) => {
-                playerStatus.textContent = "Player offline";
-                console.warn(`Device ID has gone offline: ${device_id}`);
-            });
+        player.addListener("not_ready", ({ device_id }) => {
+            console.warn(`Device ID has gone offline: ${device_id}`);
+        });
     
-            player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
-            player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
-            player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
-            player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
+        player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
+        player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
+        player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
+        player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
     
-            player.connect().then(success => {
-                if (success) {
-                    console.log("Successfully connected to Spotify.");
-                } else {
-                    console.error("Failed to connect player.");
-                    playerStatus.textContent = "Failed to connect player.";
-                }
-            });
-        };
+        player.connect().then(success => {
+            if (!success) {
+                console.error("Failed to connect player.");
+            }
+        });
     }
         
-    function transferPlaybackToDevice(deviceId) {
+    function transferPlaybackToDevice(deviceId, token) {
         return fetch(`https://api.spotify.com/v1/me/player`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -128,31 +139,54 @@ document.addEventListener('DOMContentLoaded', function() {
         songInfo.classList.add('hidden');
         revealBtn.classList.add('hidden');
         nextSongBtn.classList.add('hidden');
+        playerStatus.classList.add('hidden');
     }
     
     function loadPlaylist() {
         const url = playlistUrlInput.value.trim();
-        const playlistRegex = /playlist\/([a-zA-Z0-9]+)/;
-        const match = url.match(playlistRegex);
         
-        if (!match) {
-            alert('Please enter a valid Spotify playlist URL');
+        // More flexible URL parsing
+        let playlistId = null;
+        
+        // Try different URL formats
+        const patterns = [
+            /playlist\/([a-zA-Z0-9]+)/,         // Standard URL
+            /spotify:playlist:([a-zA-Z0-9]+)/,  // URI format
+            /^([a-zA-Z0-9]+)$/                  // Just the ID
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                playlistId = match[1];
+                break;
+            }
+        }
+        
+        if (!playlistId) {
+            alert('Please enter a valid Spotify playlist URL or ID');
             return;
         }
         
-        playlistId = match[1];
+        playlistId = playlistId;
         fetchPlaylistTracks();
     }
     
     async function fetchPlaylistTracks() {
         try {
+            playerStatus.classList.remove('hidden');
+            playerStatus.textContent = "Loading playlist...";
+            
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
             });
             
-            if (!response.ok) throw new Error('Failed to fetch playlist');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Failed to fetch playlist');
+            }
             
             const data = await response.json();
             playlistTracks = data.items
@@ -160,15 +194,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 .filter(track => track && track.id);
             
             if (playlistTracks.length === 0) {
-                throw new Error('Playlist is empty');
+                throw new Error('Playlist is empty or contains no playable tracks');
             }
             
             playlistInput.classList.add('hidden');
             gameSection.classList.remove('hidden');
+            playerStatus.classList.add('hidden');
             playRandomSong();
         } catch (error) {
             console.error('Error:', error);
-            alert('Error: ' + error.message);
+            playerStatus.textContent = "Error: " + error.message;
+            setTimeout(() => playerStatus.classList.add('hidden'), 3000);
         }
     }
     
@@ -202,14 +238,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
             
-            playerStatus.textContent = "Now playing...";
+            revealBtn.classList.remove('hidden');
         } catch (error) {
             console.error('Playback error:', error);
-            playerStatus.textContent = "Error starting playback - make sure Spotify is open";
+            playerStatus.classList.remove('hidden');
+            playerStatus.textContent = "Playback error - try again";
+            setTimeout(() => playerStatus.classList.add('hidden'), 2000);
         }
         
         songInfo.classList.add('hidden');
-        revealBtn.classList.remove('hidden');
         nextSongBtn.classList.add('hidden');
     }
     
