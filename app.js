@@ -1,4 +1,3 @@
-// Version 1.2.2 - Fixed Web Playback SDK initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Spotify API Config
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97';
@@ -76,15 +75,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`Player is ready. Device ID: ${device_id}`);
     
                 if (device_id) {
-                    localStorage.setItem("spotify_device_id", device_id);
-                    await transferPlaybackToDevice(device_id, token);  // Ensure Spotify uses this device
+                    deviceId = device_id;
+                    localStorage.setItem("spotify_device_id", deviceId);
+                    await transferPlaybackToDevice(deviceId, token);  // Ensure Spotify uses this device
+                    playerStatus.textContent = "Player connected";
                 } else {
                     console.error("Device ID is null.");
+                    playerStatus.textContent = "Device not ready.";
                 }
             });
     
             player.addListener("not_ready", ({ device_id }) => {
-                console.warn(`Player is not ready. Device ID: ${device_id}`);
+                playerStatus.textContent = "Player offline";
+                console.warn(`Device ID has gone offline: ${device_id}`);
             });
     
             player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
@@ -97,70 +100,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log("Successfully connected to Spotify.");
                 } else {
                     console.error("Failed to connect player.");
+                    playerStatus.textContent = "Failed to connect player.";
                 }
             });
         };
     }
     
-    async function transferPlaybackToDevice(deviceId, token) {
-        try {
-            const response = await fetch("https://api.spotify.com/v1/me/player", {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    device_ids: [deviceId],
-                    play: true
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed to transfer playback: ${errorData.error.message}`);
-            }
-
-            console.log("Playback transferred successfully.");
-        } catch (error) {
-            console.error("Error transferring playback:", error.message);
-        }
-    }
-
-    function createPlayer() {
-        player = new window.Spotify.Player({
-            name: 'Spotify Song Guesser',
-            getOAuthToken: cb => { cb(accessToken); },
-            volume: 0.5
-        });
-
-        player.addListener('ready', ({ device_id }) => {
-            deviceId = device_id;
-            playerStatus.textContent = "Connected to Spotify player";
-            console.log('Ready with Device ID', device_id);
-        });
-
-        player.addListener('not_ready', ({ device_id }) => {
-            playerStatus.textContent = "Player offline";
-            console.log('Device ID has gone offline', device_id);
-        });
-
-        player.addListener('initialization_error', ({ message }) => {
-            playerStatus.textContent = "Player error: " + message;
-            console.error(message);
-        });
-
-        player.addListener('authentication_error', ({ message }) => {
-            playerStatus.textContent = "Auth error: " + message;
-            console.error(message);
-        });
-
-        player.addListener('account_error', ({ message }) => {
-            playerStatus.textContent = "Account error: " + message;
-            console.error(message);
-        });
-
-        player.connect();
+    function transferPlaybackToDevice(deviceId, token) {
+        return fetch(`https://api.spotify.com/v1/me/player`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                device_ids: [deviceId],
+                play: true
+            })
+        }).then(response => response.json())
+          .catch(error => console.error("Error transferring playback to device:", error));
     }
     
     function resetGameState() {
@@ -216,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function playRandomSong() {
-        if (playlistTracks.length === 0) return;
+        if (playlistTracks.length === 0 || !deviceId) return;
         
         const randomIndex = Math.floor(Math.random() * playlistTracks.length);
         currentTrack = playlistTracks[randomIndex];
