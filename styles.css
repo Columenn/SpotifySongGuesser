@@ -213,11 +213,6 @@ button:hover {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Hidden by default, only shown when game starts */
-.hidden .player-controls-container {
-    display: none;
-}
-
 .player-controls {
     display: flex;
     align-items: center;
