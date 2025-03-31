@@ -164,7 +164,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            if (!response.ok) throw new Error('Failed to fetch playlist');
+            if (!response.ok) {
+                // Get more details from the response if available
+                let errorDetails = '';
+                try {
+                    const errorData = await response.json();
+                    errorDetails = errorData.error?.message || '';
+                } catch (e) {}
+                
+                throw new Error(`Failed to fetch playlist (Status: ${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
+            }
             
             const data = await response.json();
             playlistTracks = data.items
@@ -172,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .filter(track => track && track.id);
             
             if (playlistTracks.length === 0) {
-                throw new Error('Playlist is empty');
+                throw new Error('Playlist is empty or contains no playable tracks');
             }
             
             playlistInput.classList.add('hidden');
@@ -180,7 +189,23 @@ document.addEventListener('DOMContentLoaded', function() {
             playRandomSong();
         } catch (error) {
             console.error('Error:', error);
-            alert('Error: ' + error.message);
+            
+            // Construct detailed error message
+            let errorMessage = 'An error occurred';
+            
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Network error: Could not connect to Spotify servers. Please check your internet connection.';
+            } else if (error.message.includes('401')) {
+                errorMessage = 'Authentication failed: Your session may have expired. Please refresh the page and try again.';
+            } else if (error.message.includes('403')) {
+                errorMessage = 'Access denied: You may not have permission to access this playlist.';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'Playlist not found: The playlist URL may be incorrect or the playlist may have been deleted.';
+            } else {
+                errorMessage = error.message;
+            }
+            
+            alert(`Error: ${errorMessage}`);
         }
     }
     
