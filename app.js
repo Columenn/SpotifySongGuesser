@@ -45,27 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem("spotify_access_token", token);
             window.history.pushState({}, document.title, window.location.pathname);
             loadSpotifySDK();
-            
-            // Ensure playback is stopped when page loads
-            stopPlaybackOnLoad();
         } else if (!accessToken) {
             const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private streaming user-read-playback-state user-modify-playback-state`;
             window.location.href = authUrl;
-        }
-    }
-    
-    async function stopPlaybackOnLoad() {
-        try {
-            if (accessToken) {
-                await fetch(`https://api.spotify.com/v1/me/player/pause`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
-                });
-            }
-        } catch (error) {
-            console.log('No active playback to pause');
         }
     }
     
@@ -133,11 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
         
         player.addListener('player_state_changed', state => {
-            if (!state) {
-                // Player stopped or no state
-                playPauseIcon.textContent = '▶';
-                return;
-            }
+            if (!state) return;
             playPauseIcon.textContent = state.paused ? '▶' : '❚❚';
         });
     
@@ -177,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 device_ids: [deviceId],
-                play: false // Start with paused state
+                play: true
             })
         }).catch(error => console.error("Error transferring playback to device:", error));
     }
@@ -192,7 +170,6 @@ document.addEventListener('DOMContentLoaded', function() {
         nextSongBtn.classList.add('hidden');
         playerStatus.classList.add('hidden');
         playPauseBtn.disabled = true;
-        playPauseIcon.textContent = '▶';
     }
     
     function loadPlaylist() {
