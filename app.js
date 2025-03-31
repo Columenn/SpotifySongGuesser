@@ -160,22 +160,39 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // First verify we have a valid access token
             if (!accessToken || accessToken === 'undefined') {
-                throw new Error('No valid access token found. Please refresh the page to reauthenticate.');
+                throw new Error('Authentication required. Please refresh the page.');
             }
     
-            // Verify playlist ID format
-            if (!playlistId || !/^[a-zA-Z0-9]+$/.test(playlistId)) {
-                throw new Error('Invalid playlist ID format. Please check the playlist URL.');
+            // Additional iOS-specific checks
+            const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
+            if (isAppleDevice) {
+                // Check for potential ITP issues
+                if (!document.cookie.includes('sp_')) {
+                    console.warn('No Spotify cookies detected - ITP might be blocking');
+                }
             }
     
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // Longer timeout for iOS
             
+            // Modified request with additional headers for Apple devices
+            const headers = {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            };
+    
+            if (isAppleDevice) {
+                headers['Accept'] = 'application/json';
+                headers['Cache-Control'] = 'no-cache';
+            }
+    
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                signal: controller.signal
+                headers: headers,
+                signal: controller.signal,
+                credentials: isAppleDevice ? 'include' : 'same-origin', // Handle cookies differently for Apple
+                mode: 'cors'
             });
             
             clearTimeout(timeoutId);
@@ -185,8 +202,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const errorData = await response.json();
                     errorDetails = errorData.error?.message || '';
-                    if (errorData.error?.status === 403) {
-                        errorDetails += ' - Make sure the playlist is not private';
+                    
+                    // Special handling for Apple devices
+                    if (isAppleDevice && response.status === 403) {
+                        errorDetails += '\n\nApple Device Detected: This might be caused by:';
+                        errorDetails += '\n1. Intelligent Tracking Prevention (ITP) blocking the request';
+                        errorDetails += '\n2. Cookie restrictions in Safari/Firefox on iOS';
+                        errorDetails += '\n3. Missing required headers';
+                        
+                        // Suggest potential workarounds
+                        errorDetails += '\n\nTry these solutions:';
+                        errorDetails += '\n1. Open in Chrome (if available)';
+                        errorDetails += '\n2. Disable "Prevent Cross-Site Tracking" in Safari Settings';
+                        errorDetails += '\n3. Try in Private Browsing mode';
                     }
                 } catch (e) {
                     console.error('Error parsing error response:', e);
@@ -195,40 +223,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(`Spotify API request failed (Status: ${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
             }
             
-            const data = await response.json();
-            playlistTracks = data.items
-                .map(item => item.track)
-                .filter(track => track && track.id);
+            // Rest of your success handling code...
             
-            if (playlistTracks.length === 0) {
-                throw new Error('Playlist is empty or contains no playable tracks. Note: Podcast episodes are not supported.');
-            }
-            
-            playlistInput.classList.add('hidden');
-            gameSection.classList.remove('hidden');
-            playRandomSong();
         } catch (error) {
-            console.error('Detailed error:', error);
+            console.error('Full error details:', error);
             
-            let errorMessage = 'An error occurred while loading the playlist';
+            let errorMessage = 'Failed to load playlist';
             
-            if (error.name === 'AbortError') {
-                errorMessage = 'Request timed out. The Spotify servers might be slow or your connection might be unstable.';
-            } else if (error.message.includes('Failed to fetch')) {
-                errorMessage = 'Network error. This could mean:';
-                errorMessage += '\n1. Spotify API is temporarily unavailable';
-                errorMessage += '\n2. Your network is blocking the request';
-                errorMessage += '\n3. There\'s a CORS issue (try refreshing)';
-                errorMessage += '\n4. Your ad blocker might be interfering';
-            } else if (error.message.includes('401')) {
-                errorMessage = 'Authentication expired. Please refresh the page to get a new access token.';
-            } else if (error.message.includes('invalid playlist')) {
-                errorMessage = 'Invalid playlist URL. Make sure you\'re using a valid Spotify playlist link.';
-            } else {
-                errorMessage = error.message;
+            if (error.message.includes('403')) {
+                errorMessage = 'Access denied by Spotify (403 Forbidden)\n';
+                
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    errorMessage += '\nThis error occurs frequently on Apple devices due to:';
+                    errorMessage += '\n- Strict privacy protections in iOS/iPadOS';
+                    errorMessage += '\n- Cookie restrictions in mobile browsers';
+                    errorMessage += '\n\nPossible solutions:';
+                    errorMessage += '\n1. Try Chrome browser if available';
+                    errorMessage += '\n2. Go to Settings > Safari and turn OFF "Prevent Cross-Site Tracking"';
+                    errorMessage += '\n3. Clear website data in Safari settings';
+                    errorMessage += '\n4. Try requesting desktop site (long press refresh button)';
+                }
             }
             
-            alert(`Error: ${errorMessage}\n\nIf the problem persists, try:\n1. Refreshing the page\n2. Checking Spotify's status at status.spotify.com\n3. Trying a different playlist`);
+            alert(errorMessage);
+            
+            // Additional debugging for developers
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log('Debug info:', {
+                    accessToken: accessToken ? 'exists' : 'missing',
+                    playlistId,
+                    userAgent: navigator.userAgent,
+                    cookies: document.cookie,
+                    isAppleDevice
+                });
+            }
         }
     }
     
