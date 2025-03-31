@@ -16,11 +16,12 @@
                 <input type="text" id="playlist-url" placeholder="Enter Spotify Playlist URL" value="https://open.spotify.com/playlist/2WQxrq5bmHMlVuzvtwwywV">
                 <button id="load-playlist">▶</button>
             </div>
+            <p class="note">Note: You need a Spotify Premium account to play songs</p>
         </div>
         
         <div id="game-section" class="hidden">
-            <div id="player-status">Connecting to Spotify player...</div>
-            <button id="reveal-btn">Reveal Song</button>
+            <div id="player-status">Loading Spotify player...</div>
+            <button id="reveal-btn" class="hidden">Reveal Song</button>
             
             <div id="song-info" class="hidden">
                 <div class="artist-features">
@@ -34,11 +35,10 @@
         </div>
     </div>
 
-    <div class="version">v1.2.7</div>
+    <div class="version">v1.2.8</div>
 
-    <!-- Load Spotify SDK first -->
-    <script src="https://sdk.scdn.co/spotify-player.js"></script>
-    <!-- Then load your app script -->
+    <!-- Important: Remove the direct Spotify SDK script tag -->
+    <!-- The JavaScript will now load the SDK dynamically when needed -->
     <script src="app.js"></script>
 </body>
 </html>

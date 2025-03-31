@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (token) {
             accessToken = token;
+            localStorage.setItem("spotify_access_token", token);
             window.history.pushState({}, document.title, window.location.pathname);
             loadSpotifySDK();
         } else if (!accessToken) {
@@ -48,135 +49,96 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function loadSpotifySDK() {
+        // First check if SDK is already loaded
         if (window.Spotify) {
-            console.log("Spotify Web Playback SDK is available.");
+            console.log("Spotify Web Playback SDK is already available.");
             initializePlayer();
-        } else {
-            console.log("Spotify Web Playback SDK is not available. Loading...");
-            const script = document.createElement("script");
-            script.src = "https://sdk.scdn.co/spotify-player.js";
-            script.onload = () => initializePlayer();
-            script.onerror = () => console.error("Failed to load Spotify Web Playback SDK.");
-            document.head.appendChild(script);
+            return;
         }
+        
+        console.log("Loading Spotify Web Playback SDK...");
+        const script = document.createElement("script");
+        script.src = "https://sdk.scdn.co/spotify-player.js";
+        script.async = true;
+        
+        // Set up the onload callback before adding to document
+        script.onload = () => {
+            console.log("Spotify Web Playback SDK loaded successfully.");
+            // The SDK will call window.onSpotifyWebPlaybackSDKReady when ready
+        };
+        
+        script.onerror = () => {
+            console.error("Failed to load Spotify Web Playback SDK.");
+            playerStatus.textContent = "Failed to load Spotify player";
+        };
+        
+        document.head.appendChild(script);
+        
+        // Set up the global callback that the SDK will call when ready
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            console.log("Spotify Web Playback SDK is ready to initialize.");
+            initializePlayer();
+        };
     }
 
     function initializePlayer() {
-        console.log("Initializing Spotify Web Playback SDK...");
+        console.log("Initializing Spotify Player...");
     
-        if (!window.Spotify) {
-            console.error("Spotify Web Playback SDK is not available yet!");
+        const token = localStorage.getItem("spotify_access_token");
+        if (!token) {
+            console.error("No Spotify access token found.");
+            playerStatus.textContent = "Authentication error - please reload";
             return;
         }
     
-        window.onSpotifyWebPlaybackSDKReady = () => {
-            console.log("Spotify Web Playback SDK is ready.");
+        player = new Spotify.Player({
+            name: "Spotify Song Guesser",
+            getOAuthToken: cb => { cb(token); },
+            volume: 0.5
+        });
     
-            const token = localStorage.getItem("spotify_access_token");
-            if (!token) {
-                console.error("No Spotify access token found.");
-                return;
+        player.addListener("ready", async ({ device_id }) => {
+            console.log(`Player is ready. Device ID: ${device_id}`);
+    
+            if (device_id) {
+                deviceId = device_id;
+                localStorage.setItem("spotify_device_id", deviceId);
+                await transferPlaybackToDevice(deviceId, token);
+                playerStatus.textContent = "Player connected";
+            } else {
+                console.error("Device ID is null.");
+                playerStatus.textContent = "Device not ready.";
             }
+        });
     
-            player = new Spotify.Player({
-                name: "Spotify Song Guesser",
-                getOAuthToken: cb => { cb(token); },
-                volume: 0.5
-            });
+        player.addListener("not_ready", ({ device_id }) => {
+            playerStatus.textContent = "Player offline";
+            console.warn(`Device ID has gone offline: ${device_id}`);
+        });
     
-            player.addListener("ready", async ({ device_id }) => {
-                console.log(`Player is ready. Device ID: ${device_id}`);
+        player.addListener("initialization_error", ({ message }) => {
+            console.error(`Initialization Error: ${message}`);
+            playerStatus.textContent = "Player initialization error";
+        });
+        
+        player.addListener("authentication_error", ({ message }) => {
+            console.error(`Authentication Error: ${message}`);
+            playerStatus.textContent = "Authentication error - please reload";
+        });
+        
+        player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
+        player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
     
-                if (device_id) {
-                    deviceId = device_id;
-                    localStorage.setItem("spotify_device_id", deviceId);
-                    await transferPlaybackToDevice(deviceId, token);  // Ensure Spotify uses this device
-                    playerStatus.textContent = "Player connected";
-                } else {
-                    console.error("Device ID is null.");
-                    playerStatus.textContent = "Device not ready.";
-                }
-            });
-    
-            player.addListener("not_ready", ({ device_id }) => {
-                playerStatus.textContent = "Player offline";
-                console.warn(`Device ID has gone offline: ${device_id}`);
-            });
-    
-            player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
-            player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
-            player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
-            player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
-    
-            player.connect().then(success => {
-                if (success) {
-                    console.log("Successfully connected to Spotify.");
-                } else {
-                    console.error("Failed to connect player.");
-                    playerStatus.textContent = "Failed to connect player.";
-                }
-            });
-        };
-    }
-    
-    function initializePlayer() {
-        console.log("Initializing Spotify Web Playback SDK...");
-    
-        if (!window.Spotify) {
-            console.error("Spotify Web Playback SDK is not available yet!");
-            return;
-        }
-    
-        window.onSpotifyWebPlaybackSDKReady = () => {
-            console.log("Spotify Web Playback SDK is ready.");
-    
-            const token = localStorage.getItem("spotify_access_token");
-            if (!token) {
-                console.error("No Spotify access token found.");
-                return;
+        player.connect().then(success => {
+            if (success) {
+                console.log("Successfully connected to Spotify.");
+            } else {
+                console.error("Failed to connect player.");
+                playerStatus.textContent = "Failed to connect player.";
             }
-    
-            player = new Spotify.Player({
-                name: "Spotify Song Guesser",
-                getOAuthToken: cb => { cb(token); },
-                volume: 0.5
-            });
-    
-            player.addListener("ready", async ({ device_id }) => {
-                console.log(`Player is ready. Device ID: ${device_id}`);
-    
-                if (device_id) {
-                    deviceId = device_id;
-                    localStorage.setItem("spotify_device_id", deviceId);
-                    await transferPlaybackToDevice(deviceId, token);  // Ensure Spotify uses this device
-                    playerStatus.textContent = "Player connected";
-                } else {
-                    console.error("Device ID is null.");
-                    playerStatus.textContent = "Device not ready.";
-                }
-            });
-    
-            player.addListener("not_ready", ({ device_id }) => {
-                playerStatus.textContent = "Player offline";
-                console.warn(`Device ID has gone offline: ${device_id}`);
-            });
-    
-            player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
-            player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
-            player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
-            player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
-    
-            player.connect().then(success => {
-                if (success) {
-                    console.log("Successfully connected to Spotify.");
-                } else {
-                    console.error("Failed to connect player.");
-                    playerStatus.textContent = "Failed to connect player.";
-                }
-            });
-        };
+        });
     }
-    
+        
     function transferPlaybackToDevice(deviceId, token) {
         return fetch(`https://api.spotify.com/v1/me/player`, {
             method: 'PUT',
@@ -188,8 +150,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 device_ids: [deviceId],
                 play: true
             })
-        }).then(response => response.json())
-          .catch(error => console.error("Error transferring playback to device:", error));
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to transfer playback');
+            }
+            return response.json();
+        }).catch(error => {
+            console.error("Error transferring playback to device:", error);
+            playerStatus.textContent = "Playback transfer error";
+            throw error;
+        });
     }
     
     function resetGameState() {
