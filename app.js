@@ -31,6 +31,29 @@ document.addEventListener('DOMContentLoaded', function() {
     revealBtn.addEventListener('click', revealSong);
     nextSongBtn.addEventListener('click', playRandomSong);
     
+    // Utility Functions
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+    
+    function showError(message) {
+        if (isIOS()) {
+            message += '\n\niOS Users: Please try:\n' +
+                      '1. Use Chrome browser\n' +
+                      '2. Disable "Prevent Cross-Site Tracking" in Safari Settings\n' +
+                      '3. Clear website data (Settings > Safari > Advanced)';
+        }
+        alert(message);
+    }
+    
+    function getAccessToken() {
+        // Check multiple storage locations for iOS compatibility
+        return localStorage.getItem("spotify_access_token") || 
+               sessionStorage.getItem("spotify_access_token") || 
+               accessToken;
+    }
+    
     function checkAuth() {
         resetGameState();
         
@@ -39,12 +62,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (token) {
             accessToken = token;
+            // Store in both localStorage and sessionStorage for iOS
             localStorage.setItem("spotify_access_token", token);
+            sessionStorage.setItem("spotify_access_token", token);
             window.history.pushState({}, document.title, window.location.pathname);
             loadSpotifySDK();
-        } else if (!accessToken) {
-            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private streaming user-read-playback-state user-modify-playback-state`;
-            window.location.href = authUrl;
+        } else {
+            accessToken = getAccessToken();
+            if (!accessToken) {
+                const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=playlist-read-private streaming user-read-playback-state user-modify-playback-state`;
+                // For iOS, open in same tab to avoid popup issues
+                window.location.href = authUrl;
+            } else {
+                loadSpotifySDK();
+            }
         }
     }
     
@@ -66,6 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         script.onerror = () => {
             console.error("Failed to load Spotify Web Playback SDK.");
+            if (isIOS()) {
+                showError("Failed to load Spotify player. Please try refreshing the page.");
+            }
         };
         
         document.head.appendChild(script);
@@ -79,9 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializePlayer() {
         console.log("Initializing Spotify Player...");
     
-        const token = localStorage.getItem("spotify_access_token");
+        const token = getAccessToken();
         if (!token) {
             console.error("No Spotify access token found.");
+            showError("Authentication failed. Please refresh the page.");
             return;
         }
     
@@ -105,30 +140,57 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn(`Device ID has gone offline: ${device_id}`);
         });
     
-        player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
-        player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
-        player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
-        player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
+        player.addListener("initialization_error", ({ message }) => {
+            console.error(`Initialization Error: ${message}`);
+            showError(`Player initialization failed: ${message}`);
+        });
+    
+        player.addListener("authentication_error", ({ message }) => {
+            console.error(`Authentication Error: ${message}`);
+            showError("Authentication expired. Please refresh the page.");
+        });
+    
+        player.addListener("account_error", ({ message }) => {
+            console.error(`Account Error: ${message}`);
+            showError(`Account error: ${message}`);
+        });
+    
+        player.addListener("playback_error", ({ message }) => {
+            console.error(`Playback Error: ${message}`);
+            showError(`Playback error: ${message}`);
+        });
     
         player.connect().then(success => {
             if (!success) {
                 console.error("Failed to connect player.");
+                showError("Failed to connect to Spotify. Please refresh the page.");
             }
         });
     }
         
-    function transferPlaybackToDevice(deviceId, token) {
-        return fetch(`https://api.spotify.com/v1/me/player`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                device_ids: [deviceId],
-                play: true
-            })
-        }).catch(error => console.error("Error transferring playback to device:", error));
+    async function transferPlaybackToDevice(deviceId, token) {
+        try {
+            const response = await fetch(`https://api.spotify.com/v1/me/player`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    device_ids: [deviceId],
+                    play: true
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to transfer playback (${response.status})`);
+            }
+        } catch (error) {
+            console.error("Error transferring playback to device:", error);
+            if (isIOS()) {
+                showError("Playback transfer failed. Try pausing music in the Spotify app first.");
+            }
+        }
     }
     
     function resetGameState() {
@@ -148,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const match = url.match(playlistRegex);
         
         if (!match) {
-            alert('Please enter a valid Spotify playlist URL');
+            showError('Please enter a valid Spotify playlist URL');
             return;
         }
         
@@ -158,53 +220,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function fetchPlaylistTracks() {
         try {
-            // Basic validation
-            if (!accessToken) throw new Error('Authentication required. Please refresh the page.');
-            if (!playlistId) throw new Error('Invalid playlist URL');
-    
-            // Platform detection (for error messages only)
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            
-            console.log('AccessToken:', accessToken);  // Debugging line
-            console.log('PlaylistId:', playlistId);    // Debugging line
-    
-            const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'  // Include cookies in the request
-            });
-    
-            if (!response.ok) {
-                let errorDetails = '';
-                try {
-                    const errorData = await response.json();
-                    errorDetails = errorData.error?.message || '';
-                    
-                    // Special iOS messaging
-                    if (isIOS && response.status === 403) {
-                        errorDetails += '\n\niOS Detected: Common fixes:\n' +
-                                       '1. Try Chrome browser\n' +
-                                       '2. Disable "Prevent Cross-Site Tracking" in Safari Settings\n' +
-                                       '3. Clear website data (Settings > Safari)';
-                    }
-                } catch (e) {
-                    console.error('Error parsing response:', e);
-                }
-                
-                throw new Error(`Spotify API Error (${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
+            const token = getAccessToken();
+            if (!token) {
+                throw new Error('Authentication required. Please refresh the page.');
             }
-    
+            if (!playlistId) {
+                throw new Error('Invalid playlist URL');
+            }
+
+            // Add cache-busting parameter for iOS
+            const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?timestamp=${Date.now()}`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                },
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `Spotify API Error (${response.status})`);
+            }
+
             const data = await response.json();
             playlistTracks = data.items
                 .map(item => item.track)
                 .filter(track => track && track.id);
-    
+
             if (playlistTracks.length === 0) {
                 throw new Error('Playlist contains no playable tracks');
             }
-    
+
             playlistInput.classList.add('hidden');
             gameSection.classList.remove('hidden');
             playRandomSong();
@@ -213,22 +263,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('API Error:', error);
             
             let errorMessage = error.message;
-    
-            // Enhance network error messages
+            
             if (error.message.includes('Failed to fetch')) {
-                errorMessage = 'Network error. Please check your connection';
-            }
-    
-            // For iOS 403 errors, provide specific guidance
-            if (isIOS && error.message.includes('403')) {
-                errorMessage = 'iOS Access Error (403)\n' +
-                              'This often works:\n' +
-                              '1. Open in Chrome\n' +
-                              '2. Go to Settings > Safari and turn OFF "Prevent Cross-Site Tracking"\n' +
-                              '3. Clear Safari website data';
+                errorMessage = 'Network error. Please check your connection.';
+            } else if (error.message.includes('401')) {
+                errorMessage = 'Session expired. Please refresh the page.';
+            } else if (error.message.includes('403')) {
+                errorMessage = 'Access denied. Please check your permissions.';
             }
             
-            alert(errorMessage);
+            showError(errorMessage);
         }
     }
         
@@ -239,32 +283,38 @@ document.addEventListener('DOMContentLoaded', function() {
         currentTrack = playlistTracks[randomIndex];
         
         try {
+            const token = getAccessToken();
+            
+            // First ensure playback is on our device
             await fetch(`https://api.spotify.com/v1/me/player`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${accessToken}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     device_ids: [deviceId],
-                    play: true
+                    play: false // Don't start playing yet
                 })
             });
             
+            // Then play the specific track
             await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${accessToken}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    uris: [`spotify:track:${currentTrack.id}`]
+                    uris: [`spotify:track:${currentTrack.id}`],
+                    position_ms: 0
                 })
             });
             
             revealBtn.classList.remove('hidden');
         } catch (error) {
             console.error('Playback error:', error);
+            showError('Failed to play track. Please try again.');
         }
         
         songInfo.classList.add('hidden');
