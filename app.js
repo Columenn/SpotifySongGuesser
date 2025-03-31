@@ -52,23 +52,59 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializePlayer() {
         console.log("Initializing Spotify Web Playback SDK...");
     
-        // Debug: Check if Spotify SDK is available
         if (!window.Spotify) {
             console.error("Spotify Web Playback SDK is not available yet!");
             return;
-        } else {
-            console.log("Spotify SDK detected.");
         }
     
-        // Ensure the Spotify Web Playback SDK is fully loaded before calling initializePlayer
         window.onSpotifyWebPlaybackSDKReady = () => {
-            console.log("🎵 Spotify Web Playback SDK is ready.");
-            createPlayer();  // Now safe to call
-        };
+            console.log("Spotify Web Playback SDK is ready.");
     
-        createPlayer();
+            const token = localStorage.getItem("spotify_access_token");
+            if (!token) {
+                console.error("No Spotify access token found.");
+                return;
+            }
+    
+            const player = new Spotify.Player({
+                name: "Spotify Song Guesser",
+                getOAuthToken: cb => { cb(token); },
+                volume: 0.5
+            });
+    
+            // Event: Player is ready
+            player.addListener("ready", ({ device_id }) => {
+                console.log(`Player is ready. Device ID: ${device_id}`);
+    
+                if (device_id) {
+                    localStorage.setItem("spotify_device_id", device_id);
+                } else {
+                    console.error("Device ID is null.");
+                }
+            });
+    
+            // Event: Player not ready
+            player.addListener("not_ready", ({ device_id }) => {
+                console.warn(`Player is not ready. Device ID: ${device_id}`);
+            });
+    
+            // Event: Errors
+            player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
+            player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
+            player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
+            player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
+    
+            // Connect player to Spotify
+            player.connect().then(success => {
+                if (success) {
+                    console.log("Successfully connected to Spotify.");
+                } else {
+                    console.error("Failed to connect player.");
+                }
+            });
+        };
     }
-        
+       
     function createPlayer() {
         player = new window.Spotify.Player({
             name: 'Spotify Song Guesser',
