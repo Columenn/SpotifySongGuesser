@@ -233,10 +233,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
         
     async function playRandomSong() {
-        if (playlistTracks.length === 0 || !deviceId) return;
+        if (playlistTracks.length === 0) return;
         
         const randomIndex = Math.floor(Math.random() * playlistTracks.length);
         currentTrack = playlistTracks[randomIndex];
+        
+        try {
+            // Check if the user can play using the Spotify app (using the Spotify URI scheme)
+            const spotifyUri = `spotify:track:${currentTrack.id}`;
+            
+            // Check if the device supports opening Spotify URIs
+            const canOpenSpotifyUri = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
+            
+            if (canOpenSpotifyUri) {
+                // Attempt to open the Spotify app on mobile (iOS/Android)
+                window.location.href = spotifyUri;
+            } else if (navigator.userAgent.includes("Windows")) {
+                // For Windows (and similar OSes), try opening the app using a URI or fallback to Web SDK
+                window.location.href = spotifyUri;
+                // Add a timeout to redirect to Web Playback SDK if the app is not installed
+                setTimeout(() => {
+                    if (!document.hidden) {
+                        playWithWebSDK();
+                    }
+                }, 500); // Timeout delay to allow app to open
+            } else {
+                // For other platforms (like Linux), try fallback to Web Playback SDK
+                playWithWebSDK();
+            }
+        } catch (error) {
+            console.error('Playback error:', error);
+        }
+    
+        songInfo.classList.add('hidden');
+        nextSongBtn.classList.add('hidden');
+    }
+    
+    async function playWithWebSDK() {
+        if (!deviceId) return;
         
         try {
             await fetch(`https://api.spotify.com/v1/me/player`, {
@@ -250,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     play: true
                 })
             });
-            
+    
             await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
                 method: 'PUT',
                 headers: {
@@ -261,15 +295,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     uris: [`spotify:track:${currentTrack.id}`]
                 })
             });
-            
+    
             revealBtn.classList.remove('hidden');
         } catch (error) {
             console.error('Playback error:', error);
         }
-        
-        songInfo.classList.add('hidden');
-        nextSongBtn.classList.add('hidden');
     }
+    
     
     function revealSong() {
         if (!currentTrack) return;
