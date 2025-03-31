@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let playlistId = null;
     let playlistTracks = [];
     let currentTrack = null;
-    let isPlaying = false;
     
     // DOM Elements
     const playlistInput = document.getElementById('playlist-input');
@@ -21,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const yearSpan = document.getElementById('year');
     const songNameSpan = document.getElementById('song-name');
     const nextSongBtn = document.getElementById('next-song');
+    const openInSpotifyBtn = document.getElementById('open-in-spotify');
     
     // Initialize
     checkAuth();
@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPlaylistBtn.addEventListener('click', loadPlaylist);
     revealBtn.addEventListener('click', revealSong);
     nextSongBtn.addEventListener('click', playRandomSong);
+    if (openInSpotifyBtn) {
+        openInSpotifyBtn.addEventListener('click', openInSpotifyApp);
+    }
     
     function checkAuth() {
         resetGameState();
@@ -49,7 +52,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetGameState() {
         playlistTracks = [];
         currentTrack = null;
-        isPlaying = false;
         gameSection.classList.add('hidden');
         playlistInput.classList.remove('hidden');
         songInfo.classList.add('hidden');
@@ -153,23 +155,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const randomIndex = Math.floor(Math.random() * playlistTracks.length);
         currentTrack = playlistTracks[randomIndex];
-        isPlaying = false;
         
-        // Try to open in Spotify app
-        window.location.href = `spotify:track:${currentTrack.id}`;
-        
-        // Fallback to web player if needed
-        setTimeout(() => {
-            if (!isPlaying) {
-                window.open(`https://open.spotify.com/track/${currentTrack.id}`, '_blank');
-            }
-        }, 500);
-        
-        playerStatus.textContent = "Playing...";
-        playerStatus.classList.remove('hidden');
+        // Show the song controls but don't play automatically
         revealBtn.classList.remove('hidden');
         songInfo.classList.add('hidden');
         nextSongBtn.classList.add('hidden');
+        
+        // Update status message
+        playerStatus.textContent = "Ready to play - click 'Open in Spotify' to listen";
+        playerStatus.classList.remove('hidden');
+    }
+    
+    function openInSpotifyApp() {
+        if (!currentTrack) return;
+        
+        // Try to open the Spotify app directly
+        window.location.href = `spotify:track:${currentTrack.id}`;
+        
+        // Fallback to web player if the app doesn't open
+        setTimeout(() => {
+            window.open(`https://open.spotify.com/track/${currentTrack.id}`, '_blank');
+        }, 500);
     }
     
     function revealSong() {
@@ -183,11 +189,4 @@ document.addEventListener('DOMContentLoaded', function() {
         revealBtn.classList.add('hidden');
         nextSongBtn.classList.remove('hidden');
     }
-    
-    // Listen for visibility changes to detect if Spotify app opened
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            isPlaying = true;
-        }
-    });
 });
