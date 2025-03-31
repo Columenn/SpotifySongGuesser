@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const yearSpan = document.getElementById('year');
     const songNameSpan = document.getElementById('song-name');
     const nextSongBtn = document.getElementById('next-song');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const playPauseIcon = document.getElementById('play-pause-icon');
+    const volumeSlider = document.getElementById('volume-slider');
     
     // Initialize
     checkAuth();
@@ -98,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 deviceId = device_id;
                 localStorage.setItem("spotify_device_id", deviceId);
                 await transferPlaybackToDevice(deviceId, token);
+                playPauseBtn.disabled = false;
             }
         });
     
@@ -109,10 +113,35 @@ document.addEventListener('DOMContentLoaded', function() {
         player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
         player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
         player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
+        
+        player.addListener('player_state_changed', state => {
+            if (!state) return;
+            playPauseIcon.textContent = state.paused ? '▶' : '❚❚';
+        });
     
         player.connect().then(success => {
             if (!success) {
                 console.error("Failed to connect player.");
+            }
+        });
+        
+        setupPlayerControls();
+    }
+    
+    function setupPlayerControls() {
+        volumeSlider.addEventListener('input', function() {
+            if (player) {
+                player.setVolume(parseFloat(this.value)).then(() => {
+                    console.log('Volume updated to', this.value);
+                });
+            }
+        });
+
+        playPauseBtn.addEventListener('click', function() {
+            if (player) {
+                player.togglePlay().then(() => {
+                    console.log('Playback toggled');
+                });
             }
         });
     }
@@ -140,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         revealBtn.classList.add('hidden');
         nextSongBtn.classList.add('hidden');
         playerStatus.classList.add('hidden');
+        playPauseBtn.disabled = true;
     }
     
     function loadPlaylist() {
@@ -158,18 +188,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function fetchPlaylistTracks() {
         try {
-            // First verify we have a valid access token
             if (!accessToken || accessToken === 'undefined') {
                 throw new Error('No valid access token found. Please refresh the page to reauthenticate.');
             }
     
-            // Verify playlist ID format
             if (!playlistId || !/^[a-zA-Z0-9]+$/.test(playlistId)) {
                 throw new Error('Invalid playlist ID format. Please check the playlist URL.');
             }
     
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
                 headers: {
@@ -263,6 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             revealBtn.classList.remove('hidden');
+            playPauseBtn.disabled = false;
         } catch (error) {
             console.error('Playback error:', error);
         }

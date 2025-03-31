@@ -21,6 +21,14 @@
         
         <div id="game-section" class="hidden">
             <div id="player-status" class="hidden"></div>
+            
+            <div class="player-controls">
+                <button id="play-pause-btn" class="control-btn" disabled>
+                    <span id="play-pause-icon">▶</span>
+                </button>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            
             <button id="reveal-btn" class="hidden">Reveal Song</button>
             
             <div id="song-info" class="hidden">
@@ -35,7 +43,7 @@
         </div>
     </div>
 
-    <div class="version">v1.2.14</div>
+    <div class="version">v1.2.15</div>
 
     <script src="app.js"></script>
 </body>
