@@ -8,6 +8,8 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     position: relative;
 }
 
@@ -15,16 +17,18 @@ body {
     text-align: center;
     max-width: 600px;
     width: 100%;
-    margin-bottom: 20px; /* Space for version number */
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 h1 {
     color: #1DB954;
     margin-bottom: 30px;
+    font-size: clamp(24px, 5vw, 32px);
 }
 
 .input-section {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .input-row {
@@ -42,6 +46,8 @@ input {
     border: none;
     border-radius: 20px;
     font-size: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 button {
@@ -64,6 +70,7 @@ button {
     padding: 10px 20px;
     min-width: 150px;
     font-size: 16px;
+    margin: 10px auto;
 }
 
 button:hover {
@@ -71,16 +78,17 @@ button:hover {
 }
 
 #player-status {
-    margin: 20px 0;
+    margin: 10px 0;
     min-height: 20px;
     color: #b3b3b3;
 }
 
 #song-info {
-    margin-top: 30px;
+    margin: 20px auto;
     padding: 20px;
     background-color: #282828;
     border-radius: 10px;
+    max-width: 400px;
 }
 
 .artist-features {
@@ -90,9 +98,9 @@ button:hover {
 }
 
 .year {
-    font-size: 48px;
+    font-size: clamp(36px, 8vw, 48px);
     font-weight: bold;
-    margin: 20px 0;
+    margin: 15px 0;
     color: #1DB954;
 }
 
@@ -102,11 +110,13 @@ button:hover {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
-#next-song {
-    margin-top: 20px;
+.note {
+    color: #b3b3b3;
+    font-size: 12px;
+    margin-top: 10px;
 }
 
 .version {
@@ -115,4 +125,17 @@ button:hover {
     right: 10px;
     color: #535353;
     font-size: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-height: 700px) {
+    .container {
+        transform: scale(0.9);
+    }
+}
+
+@media (max-height: 600px) {
+    .container {
+        transform: scale(0.8);
+    }
 }
