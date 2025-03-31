@@ -23,15 +23,23 @@ h1 {
 
 .input-section {
     margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
 input {
     padding: 10px 15px;
-    width: 70%;
+    width: 100%;
+    max-width: 400px;
     border: none;
     border-radius: 20px;
-    margin-right: 10px;
     font-size: 16px;
+}
+
+.button-spacer {
+    height: 15px;
 }
 
 button {
@@ -44,6 +52,7 @@ button {
     font-size: 16px;
     font-weight: bold;
     transition: background-color 0.3s;
+    width: 150px;
 }
 
 button:hover {
@@ -53,6 +62,7 @@ button:hover {
 .player-container {
     margin: 30px auto;
     min-height: 80px;
+    width: 300px;
 }
 
 #song-info {
@@ -86,9 +96,4 @@ button:hover {
 
 #next-song {
     margin-top: 20px;
-}
-
-/* For the audio player (invisible) */
-audio {
-    display: none;
 }
