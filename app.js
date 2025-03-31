@@ -50,22 +50,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function initializePlayer() {
-        // Define the callback first
-        window.onSpotifyWebPlaybackSDKReady = createPlayer;
+        console.log("Initializing Spotify Web Playback SDK...");
     
-        // Now check if SDK is already loaded
-        if (window.Spotify) {
-            createPlayer();
+        // Debug: Check if Spotify SDK is available
+        if (!window.Spotify) {
+            console.error("Spotify Web Playback SDK is not available yet!");
+            return;
         } else {
-            // Dynamically load the Spotify SDK if it's not present
-            const script = document.createElement('script');
-            script.src = "https://sdk.scdn.co/spotify-player.js";
-            script.async = true;
-            document.body.appendChild(script);
+            console.log("Spotify SDK detected.");
         }
+    
+        // Ensure the Spotify Web Playback SDK is fully loaded before calling initializePlayer
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            console.log("🎵 Spotify Web Playback SDK is ready.");
+            createPlayer();  // Now safe to call
+        };
+    
+        createPlayer();
     }
-    
-    
+        
     function createPlayer() {
         player = new window.Spotify.Player({
             name: 'Spotify Song Guesser',
