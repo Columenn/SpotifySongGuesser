@@ -106,7 +106,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     
         player.addListener("initialization_error", ({ message }) => console.error(`Initialization Error: ${message}`));
-        player.addListener("authentication_error", ({ message }) => console.error(`Authentication Error: ${message}`));
+        player.addListener("authentication_error", ({ message }) => {
+            console.error(`Authentication Error: ${message}`);
+            alert(`Authentication error: ${message}`);
+        });
         player.addListener("account_error", ({ message }) => console.error(`Account Error: ${message}`));
         player.addListener("playback_error", ({ message }) => console.error(`Playback Error: ${message}`));
     
@@ -233,71 +236,71 @@ document.addEventListener('DOMContentLoaded', function() {
     }
         
     // Check if the device is iOS
-function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent);
-}
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent);
+    }
 
-async function playRandomSong() {
-    if (playlistTracks.length === 0) return;
-    
-    const randomIndex = Math.floor(Math.random() * playlistTracks.length);
-    currentTrack = playlistTracks[randomIndex];
-    
-    try {
-        // Check if the user can play using the Spotify app (using the Spotify URI scheme)
-        const spotifyUri = `spotify:track:${currentTrack.id}`;
+    async function playRandomSong() {
+        if (playlistTracks.length === 0) return;
         
-        if (isIOS()) {
-            // Attempt to open the Spotify app on iOS
-            window.location.href = spotifyUri;
-        } else if (/Android/.test(navigator.userAgent)) {
-            // Attempt to open Spotify app on Android
-            window.location.href = spotifyUri;
-        } else {
-            // For other devices (e.g., desktops), use Web Playback SDK or fallback
-            playWithWebSDK();
+        const randomIndex = Math.floor(Math.random() * playlistTracks.length);
+        currentTrack = playlistTracks[randomIndex];
+        
+        try {
+            // Check if the user can play using the Spotify app (using the Spotify URI scheme)
+            const spotifyUri = `spotify:track:${currentTrack.id}`;
+            
+            if (isIOS()) {
+                // Attempt to open the Spotify app on iOS
+                window.location.href = spotifyUri;
+            } else if (/Android/.test(navigator.userAgent)) {
+                // Attempt to open Spotify app on Android
+                window.location.href = spotifyUri;
+            } else {
+                // For other devices (e.g., desktops), use Web Playback SDK or fallback
+                playWithWebSDK();
+            }
+        } catch (error) {
+            console.error('Playback error:', error);
         }
-    } catch (error) {
-        console.error('Playback error:', error);
+
+        songInfo.classList.add('hidden');
+        nextSongBtn.classList.add('hidden');
     }
 
-    songInfo.classList.add('hidden');
-    nextSongBtn.classList.add('hidden');
-}
+    async function playWithWebSDK() {
+        if (!deviceId) return;
+        
+        try {
+            // Ensure you're making requests from a server-side environment to avoid CORS issues
+            await fetch(`https://api.spotify.com/v1/me/player`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    device_ids: [deviceId],
+                    play: true
+                })
+            });
 
-async function playWithWebSDK() {
-    if (!deviceId) return;
-    
-    try {
-        // Ensure you're making requests from a server-side environment to avoid CORS issues
-        await fetch(`https://api.spotify.com/v1/me/player`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                device_ids: [deviceId],
-                play: true
-            })
-        });
+            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    uris: [`spotify:track:${currentTrack.id}`]
+                })
+            });
 
-        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                uris: [`spotify:track:${currentTrack.id}`]
-            })
-        });
-
-        revealBtn.classList.remove('hidden');
-    } catch (error) {
-        console.error('Playback error:', error);
-    }
-} 
+            revealBtn.classList.remove('hidden');
+        } catch (error) {
+            console.error('Playback error:', error);
+        }
+    } 
     
     function revealSong() {
         if (!currentTrack) return;
