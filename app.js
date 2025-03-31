@@ -165,15 +165,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Platform detection (for error messages only)
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             
-            console.log('AccessToken:', accessToken);  // Debugging line
-            console.log('PlaylistId:', playlistId);    // Debugging line
-    
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
-                },
-                credentials: 'include'  // Include cookies in the request
+                }
             });
     
             if (!response.ok) {
@@ -195,16 +191,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 throw new Error(`Spotify API Error (${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
             }
-    
+            
             const data = await response.json();
             playlistTracks = data.items
                 .map(item => item.track)
                 .filter(track => track && track.id);
-    
+            
             if (playlistTracks.length === 0) {
                 throw new Error('Playlist contains no playable tracks');
             }
-    
+            
             playlistInput.classList.add('hidden');
             gameSection.classList.remove('hidden');
             playRandomSong();
@@ -213,12 +209,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('API Error:', error);
             
             let errorMessage = error.message;
-    
+            
             // Enhance network error messages
             if (error.message.includes('Failed to fetch')) {
                 errorMessage = 'Network error. Please check your connection';
             }
-    
+            
             // For iOS 403 errors, provide specific guidance
             if (isIOS && error.message.includes('403')) {
                 errorMessage = 'iOS Access Error (403)\n' +
@@ -231,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert(errorMessage);
         }
     }
-        
+    
     async function playRandomSong() {
         if (playlistTracks.length === 0 || !deviceId) return;
         
