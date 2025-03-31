@@ -1,0 +1,90 @@
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #121212;
+    color: white;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+}
+
+h1 {
+    color: #1DB954;
+    margin-bottom: 30px;
+}
+
+.input-section {
+    margin-bottom: 30px;
+}
+
+input {
+    padding: 10px 15px;
+    width: 70%;
+    border: none;
+    border-radius: 20px;
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+button {
+    background-color: #1DB954;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #1ed760;
+}
+
+.player-container {
+    margin: 30px auto;
+    width: 300px;
+    height: 80px;
+}
+
+#song-info {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #282828;
+    border-radius: 10px;
+}
+
+.artist-features {
+    font-size: 14px;
+    color: #b3b3b3;
+    margin-bottom: 10px;
+}
+
+.year {
+    font-size: 48px;
+    font-weight: bold;
+    margin: 20px 0;
+    color: #1DB954;
+}
+
+.song-name {
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+.hidden {
+    display: none;
+}
+
+#next-song {
+    margin-top: 20px;
+}
