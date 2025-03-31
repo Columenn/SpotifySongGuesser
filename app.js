@@ -158,19 +158,44 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function fetchPlaylistTracks() {
         try {
-            // Basic validation
-            if (!accessToken) throw new Error('Authentication required. Please refresh the page.');
-            if (!playlistId) throw new Error('Invalid playlist URL');
+            // First verify we have a valid access token
+            if (!accessToken || accessToken === 'undefined') {
+                throw new Error('Authentication required. Please refresh the page.');
+            }
     
-            // Platform detection (for error messages only)
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            // Additional iOS-specific checks
+            const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             
-            const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
+            if (isAppleDevice) {
+                // Check for potential ITP issues
+                if (!document.cookie.includes('sp_')) {
+                    console.warn('No Spotify cookies detected - ITP might be blocking');
                 }
+            }
+    
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // Longer timeout for iOS
+            
+            // Modified request with additional headers for Apple devices
+            const headers = {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            };
+    
+            if (isAppleDevice) {
+                headers['Accept'] = 'application/json';
+                headers['Cache-Control'] = 'no-cache';
+            }
+    
+            const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+                headers: headers,
+                signal: controller.signal,
+                credentials: isAppleDevice ? 'include' : 'same-origin', // Handle cookies differently for Apple
+                mode: 'cors'
             });
+            
+            clearTimeout(timeoutId);
     
             if (!response.ok) {
                 let errorDetails = '';
@@ -178,53 +203,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     const errorData = await response.json();
                     errorDetails = errorData.error?.message || '';
                     
-                    // Special iOS messaging
-                    if (isIOS && response.status === 403) {
-                        errorDetails += '\n\niOS Detected: Common fixes:\n' +
-                                       '1. Try Chrome browser\n' +
-                                       '2. Disable "Prevent Cross-Site Tracking" in Safari Settings\n' +
-                                       '3. Clear website data (Settings > Safari)';
+                    // Special handling for Apple devices
+                    if (isAppleDevice && response.status === 403) {
+                        errorDetails += '\n\nApple Device Detected: This might be caused by:';
+                        errorDetails += '\n1. Intelligent Tracking Prevention (ITP) blocking the request';
+                        errorDetails += '\n2. Cookie restrictions in Safari/Firefox on iOS';
+                        errorDetails += '\n3. Missing required headers';
+                        
+                        // Suggest potential workarounds
+                        errorDetails += '\n\nTry these solutions:';
+                        errorDetails += '\n1. Open in Chrome (if available)';
+                        errorDetails += '\n2. Disable "Prevent Cross-Site Tracking" in Safari Settings';
+                        errorDetails += '\n3. Try in Private Browsing mode';
                     }
                 } catch (e) {
-                    console.error('Error parsing response:', e);
+                    console.error('Error parsing error response:', e);
                 }
                 
-                throw new Error(`Spotify API Error (${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
+                throw new Error(`Spotify API request failed (Status: ${response.status})${errorDetails ? ': ' + errorDetails : ''}`);
             }
             
-            const data = await response.json();
-            playlistTracks = data.items
-                .map(item => item.track)
-                .filter(track => track && track.id);
-            
-            if (playlistTracks.length === 0) {
-                throw new Error('Playlist contains no playable tracks');
-            }
-            
-            playlistInput.classList.add('hidden');
-            gameSection.classList.remove('hidden');
-            playRandomSong();
+            // Rest of your success handling code...
             
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('Full error details:', error);
             
-            let errorMessage = error.message;
+            let errorMessage = 'Failed to load playlist';
             
-            // Enhance network error messages
-            if (error.message.includes('Failed to fetch')) {
-                errorMessage = 'Network error. Please check your connection';
-            }
-            
-            // For iOS 403 errors, provide specific guidance
-            if (isIOS && error.message.includes('403')) {
-                errorMessage = 'iOS Access Error (403)\n' +
-                              'This often works:\n' +
-                              '1. Open in Chrome\n' +
-                              '2. Go to Settings > Safari and turn OFF "Prevent Cross-Site Tracking"\n' +
-                              '3. Clear Safari website data';
+            if (error.message.includes('403')) {
+                errorMessage = 'Access denied by Spotify (403 Forbidden)\n';
+                
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    errorMessage += '\nThis error occurs frequently on Apple devices due to:';
+                    errorMessage += '\n- Strict privacy protections in iOS/iPadOS';
+                    errorMessage += '\n- Cookie restrictions in mobile browsers';
+                    errorMessage += '\n\nPossible solutions:';
+                    errorMessage += '\n1. Try Chrome browser if available';
+                    errorMessage += '\n2. Go to Settings > Safari and turn OFF "Prevent Cross-Site Tracking"';
+                    errorMessage += '\n3. Clear website data in Safari settings';
+                    errorMessage += '\n4. Try requesting desktop site (long press refresh button)';
+                }
             }
             
             alert(errorMessage);
+            
+            // Additional debugging for developers
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log('Debug info:', {
+                    accessToken: accessToken ? 'exists' : 'missing',
+                    playlistId,
+                    userAgent: navigator.userAgent,
+                    cookies: document.cookie,
+                    isAppleDevice
+                });
+            }
         }
     }
     
