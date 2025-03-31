@@ -1,4 +1,4 @@
-// Version 1.2.0 - Web Playback SDK implementation
+// Version 1.2.1 - Fixed null reference and UI improvements
 document.addEventListener('DOMContentLoaded', function() {
     // Spotify API Config
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97';
@@ -88,11 +88,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetGameState() {
         playlistTracks = [];
         currentTrack = null;
-        gameSection.classList.add('hidden');
-        playlistInput.classList.remove('hidden');
-        songInfo.classList.add('hidden');
-        revealBtn.classList.add('hidden');
-        nextSongBtn.classList.add('hidden');
+        if (gameSection) gameSection.classList.add('hidden');
+        if (playlistInput) playlistInput.classList.remove('hidden');
+        if (songInfo) songInfo.classList.add('hidden');
+        if (revealBtn) revealBtn.classList.add('hidden');
+        if (nextSongBtn) nextSongBtn.classList.add('hidden');
     }
     
     function loadPlaylist() {

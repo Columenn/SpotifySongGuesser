@@ -15,6 +15,7 @@ body {
     text-align: center;
     max-width: 600px;
     width: 100%;
+    padding-bottom: 30px; /* Space for version number */
 }
 
 h1 {
@@ -24,10 +25,13 @@ h1 {
 
 .input-section {
     margin-bottom: 30px;
+}
+
+.input-row {
     display: flex;
-    flex-direction: column;
+    gap: 10px;
     align-items: center;
-    gap: 15px;
+    justify-content: center;
 }
 
 input {
@@ -39,21 +43,25 @@ input {
     font-size: 16px;
 }
 
-.button-spacer {
-    height: 15px;
-}
-
 button {
     background-color: #1DB954;
     color: white;
     border: none;
-    padding: 10px 20px;
     border-radius: 20px;
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
     transition: background-color 0.3s;
-    width: 150px;
+}
+
+#load-playlist {
+    padding: 10px 15px;
+    width: 50px;
+}
+
+#reveal-btn, #next-song {
+    padding: 10px 20px;
+    min-width: 150px;
 }
 
 button:hover {
@@ -100,9 +108,9 @@ button:hover {
 }
 
 .version {
-    position: absolute;
-    bottom: 10px;
+    position: fixed;
+    bottom: 5px;
     right: 10px;
     color: #535353;
-    font-size: 12px;
+    font-size: 10px;
 }
