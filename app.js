@@ -50,14 +50,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function initializePlayer() {
-        // First check if the SDK is already loaded
+        // Define the callback first
+        window.onSpotifyWebPlaybackSDKReady = createPlayer;
+    
+        // Now check if SDK is already loaded
         if (window.Spotify) {
             createPlayer();
         } else {
-            // Set up callback for when SDK loads
-            window.onSpotifyWebPlaybackSDKReady = createPlayer;
+            // Dynamically load the Spotify SDK if it's not present
+            const script = document.createElement('script');
+            script.src = "https://sdk.scdn.co/spotify-player.js";
+            script.async = true;
+            document.body.appendChild(script);
         }
     }
+    
     
     function createPlayer() {
         player = new window.Spotify.Player({
