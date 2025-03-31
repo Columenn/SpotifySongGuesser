@@ -202,17 +202,68 @@ button:hover {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 100%;
-    max-width: 600px;
+    width: 90%;
+    max-width: 500px;
     display: flex;
     justify-content: center;
-    background-color: #282828;
-    padding: 10px 0;
-    border-radius: 20px;
+    align-items: center;
+    background-color: #181818;
+    padding: 12px;
+    border-radius: 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .player-controls {
     display: flex;
     align-items: center;
-    gap: 15px;
+    justify-content: space-between;
+    width: 100%;
+    gap: 20px;
+}
+
+.control-btn {
+    background-color: #1DB954;
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.control-btn:hover {
+    background-color: #1ed760;
+    transform: scale(1.1);
+}
+
+#volume-slider {
+    flex-grow: 1;
+    height: 5px;
+    -webkit-appearance: none;
+    background: #535353;
+    border-radius: 5px;
+    outline: none;
+    transition: background 0.2s;
+}
+
+#volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+}
+
+#volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
 }
