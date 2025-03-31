@@ -15,7 +15,7 @@ body {
     text-align: center;
     max-width: 600px;
     width: 100%;
-    padding-bottom: 30px; /* Space for version number */
+    margin-bottom: 20px; /* Space for version number */
 }
 
 h1 {
@@ -29,15 +29,16 @@ h1 {
 
 .input-row {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     justify-content: center;
+    max-width: 450px;
+    margin: 0 auto;
 }
 
 input {
     padding: 10px 15px;
-    width: 100%;
-    max-width: 400px;
+    flex-grow: 1;
     border: none;
     border-radius: 20px;
     font-size: 16px;
@@ -49,19 +50,20 @@ button {
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 16px;
     font-weight: bold;
     transition: background-color 0.3s;
 }
 
 #load-playlist {
-    padding: 10px 15px;
-    width: 50px;
+    padding: 10px 12px;
+    width: 40px;
+    font-size: 14px;
 }
 
 #reveal-btn, #next-song {
     padding: 10px 20px;
     min-width: 150px;
+    font-size: 16px;
 }
 
 button:hover {

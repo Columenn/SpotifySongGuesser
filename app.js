@@ -1,4 +1,4 @@
-// Version 1.2.1 - Fixed null reference and UI improvements
+// Version 1.2.2 - Fixed Web Playback SDK initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Spotify API Config
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97';
@@ -50,7 +50,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function initializePlayer() {
-        player = new Spotify.Player({
+        // First check if the SDK is already loaded
+        if (window.Spotify) {
+            createPlayer();
+        } else {
+            // Set up callback for when SDK loads
+            window.onSpotifyWebPlaybackSDKReady = createPlayer;
+        }
+    }
+    
+    function createPlayer() {
+        player = new window.Spotify.Player({
             name: 'Spotify Song Guesser',
             getOAuthToken: cb => { cb(accessToken); },
             volume: 0.5
