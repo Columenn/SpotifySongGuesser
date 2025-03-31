@@ -6,22 +6,6 @@
     <title>Spotify Song Guesser</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Additional styles to help with iOS pasting */
-        #playlist-url {
-            -webkit-user-select: auto !important;
-            user-select: auto !important;
-            font-size: 16px; /* Prevent iOS zooming */
-        }
-        .input-row {
-            display: flex;
-            width: 100%;
-        }
-        #playlist-url {
-            flex: 1;
-            min-width: 0; /* Helps with text overflow */
-        }
-    </style>
 </head>
 <body>
     <div class="container">
@@ -54,24 +38,5 @@
     <div class="version">v1.2.14</div>
 
     <script src="app.js"></script>
-    <script>
-        // Additional JavaScript to help with iOS pasting
-        document.addEventListener('DOMContentLoaded', function() {
-            const input = document.getElementById('playlist-url');
-            
-            // iOS workaround for paste issues
-            input.addEventListener('paste', function(e) {
-                // Let the paste occur first
-                setTimeout(function() {
-                    input.value = e.clipboardData.getData('text/plain');
-                }, 1);
-            });
-            
-            // Ensure input gets focus when container is tapped (iOS specific)
-            document.getElementById('playlist-input').addEventListener('click', function() {
-                input.focus();
-            });
-        });
-    </script>
 </body>
 </html>
