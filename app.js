@@ -144,49 +144,27 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function loadPlaylist() {
         const url = playlistUrlInput.value.trim();
+        const playlistRegex = /playlist\/([a-zA-Z0-9]+)/;
+        const match = url.match(playlistRegex);
         
-        // More flexible URL parsing
-        let playlistId = null;
-        
-        // Try different URL formats
-        const patterns = [
-            /playlist\/([a-zA-Z0-9]+)/,         // Standard URL
-            /spotify:playlist:([a-zA-Z0-9]+)/,  // URI format
-            /^([a-zA-Z0-9]+)$/                  // Just the ID
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match) {
-                playlistId = match[1];
-                break;
-            }
-        }
-        
-        if (!playlistId) {
-            alert('Please enter a valid Spotify playlist URL or ID');
+        if (!match) {
+            alert('Please enter a valid Spotify playlist URL');
             return;
         }
         
-        playlistId = playlistId;
+        playlistId = match[1];
         fetchPlaylistTracks();
     }
     
     async function fetchPlaylistTracks() {
         try {
-            playerStatus.classList.remove('hidden');
-            playerStatus.textContent = "Loading playlist...";
-            
             const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
             });
             
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || 'Failed to fetch playlist');
-            }
+            if (!response.ok) throw new Error('Failed to fetch playlist');
             
             const data = await response.json();
             playlistTracks = data.items
@@ -194,17 +172,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 .filter(track => track && track.id);
             
             if (playlistTracks.length === 0) {
-                throw new Error('Playlist is empty or contains no playable tracks');
+                throw new Error('Playlist is empty');
             }
             
             playlistInput.classList.add('hidden');
             gameSection.classList.remove('hidden');
-            playerStatus.classList.add('hidden');
             playRandomSong();
         } catch (error) {
             console.error('Error:', error);
-            playerStatus.textContent = "Error: " + error.message;
-            setTimeout(() => playerStatus.classList.add('hidden'), 3000);
+            alert('Error: ' + error.message);
         }
     }
     
@@ -241,9 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
             revealBtn.classList.remove('hidden');
         } catch (error) {
             console.error('Playback error:', error);
-            playerStatus.classList.remove('hidden');
-            playerStatus.textContent = "Playback error - try again";
-            setTimeout(() => playerStatus.classList.add('hidden'), 2000);
         }
         
         songInfo.classList.add('hidden');
