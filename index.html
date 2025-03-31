@@ -6,39 +6,23 @@
     <title>Spotify Song Guesser</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <style>
-        #playlist-url {
-            font-size: 16px; /* Prevent iOS zooming */
-        }
-        .input-row {
-            display: flex;
-            width: 100%;
-        }
-        #playlist-url {
-            flex: 1;
-            min-width: 0; /* Helps with text overflow */
-        }
-        #embed-container {
-            display: none;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <h1>Spotify Song Guesser</h1>
-        
+
         <div id="playlist-input" class="input-section">
             <div class="input-row">
-                <input type="text" id="playlist-url" placeholder="Enter Spotify Playlist URL" value="https://open.spotify.com/playlist/2WQxrq5bmHMlVuzvtwwywV" autocomplete="off" autocorrect="off" autocapitalize="none">
+                <input type="text" id="playlist-url" placeholder="Enter Spotify Playlist URL" value="https://open.spotify.com/playlist/2WQxrq5bmHMlVuzvtwwywV" autocomplete="off">
                 <button id="load-playlist">▶</button>
             </div>
             <p class="note">Note: You need a Spotify Premium account to play songs</p>
         </div>
-        
+
         <div id="game-section" class="hidden">
             <div id="player-status" class="hidden"></div>
             <button id="reveal-btn" class="hidden">Reveal Song</button>
-            
+
             <div id="song-info" class="hidden">
                 <div class="artist-features">
                     <span id="artist"></span>
@@ -46,14 +30,15 @@
                 <div class="year" id="year"></div>
                 <div class="song-name" id="song-name"></div>
             </div>
-            
+
             <button id="next-song" class="hidden">Next Song</button>
         </div>
+
+        <!-- Ensure the correct ID matches what is used in JavaScript -->
+        <div id="spotify-embed-container" class="hidden"></div>
     </div>
 
-    <div class="version">v1.2.25</div>
-
-    <div id="embed-container" class="hidden"></div>
+    <div class="version">v1.2.26</div>
 
     <script src="app.js"></script>
 </body>
