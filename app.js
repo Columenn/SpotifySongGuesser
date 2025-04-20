@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentTrackId = null;
     let checkInterval = null;
     let hideTimeout = null;
+    let isShowingInfo = false;
     
     // Initialize
     checkAuth();
@@ -68,24 +69,31 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.status === 200) {
                 const data = await response.json();
                 if (data.is_playing && data.item) {
-                    // If track changed, hide the song info
+                    // If track changed, reset the UI
                     if (currentTrackId && data.item.id !== currentTrackId) {
+                        isShowingInfo = false;
                         songInfo.classList.add('hidden');
                     }
                     
                     currentTrack = data.item;
                     currentTrackId = data.item.id;
                     statusDiv.textContent = "Song detected!";
-                    revealBtn.classList.remove('hidden');
+                    
+                    // Only show reveal button if we're not currently showing info
+                    if (!isShowingInfo) {
+                        revealBtn.classList.remove('hidden');
+                    }
                 } else {
                     statusDiv.textContent = "No song currently playing";
                     revealBtn.classList.add('hidden');
                     songInfo.classList.add('hidden');
+                    isShowingInfo = false;
                 }
             } else if (response.status === 204) {
                 statusDiv.textContent = "No song currently playing";
                 revealBtn.classList.add('hidden');
                 songInfo.classList.add('hidden');
+                isShowingInfo = false;
             } else if (response.status === 401) {
                 // Token expired
                 clearInterval(checkInterval);
@@ -108,17 +116,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear any existing timeout
         if (hideTimeout) clearTimeout(hideTimeout);
         
-        // Show the song info
+        // Show the song info and hide reveal button
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
         yearSpan.textContent = currentTrack.album.release_date.split('-')[0];
         songNameSpan.textContent = currentTrack.name;
         
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
+        isShowingInfo = true;
         
         // Set timeout as fallback (10 seconds)
         hideTimeout = setTimeout(() => {
             songInfo.classList.add('hidden');
+            isShowingInfo = false;
+            // Only show reveal button if it's the same song
+            if (currentTrackId === currentTrack?.id) {
+                revealBtn.classList.remove('hidden');
+            }
         }, 10000);
     }
 });
