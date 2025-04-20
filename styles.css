@@ -24,60 +24,27 @@ h1 {
     font-size: clamp(24px, 5vw, 32px);
 }
 
-.input-section {
-    margin-bottom: 20px;
-}
-
-.input-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: center;
-    max-width: 450px;
-    margin: 0 auto;
-}
-
-input {
-    padding: 10px 15px;
-    flex-grow: 1;
-    border: none;
-    border-radius: 20px;
-    font-size: 16px;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
 button {
     background-color: #1DB954;
     color: white;
     border: none;
     border-radius: 20px;
+    padding: 12px 24px;
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.3s;
-}
-
-#load-playlist {
-    padding: 10px 12px;
-    width: 40px;
-    font-size: 14px;
-}
-
-#reveal-btn, #next-song {
-    padding: 10px 20px;
-    min-width: 150px;
     font-size: 16px;
-    margin: 10px auto;
+    margin: 10px 0;
 }
 
 button:hover {
     background-color: #1ed760;
 }
 
-#player-status {
-    margin: 10px 0;
-    min-height: 20px;
+#status {
+    margin: 20px 0;
     color: #b3b3b3;
+    min-height: 20px;
 }
 
 #song-info {
@@ -115,159 +82,3 @@ button:hover {
     font-size: 12px;
     margin-top: 10px;
 }
-
-.version {
-    position: fixed;
-    bottom: 5px;
-    right: 10px;
-    color: #535353;
-    font-size: 10px;
-}
-
-/* Player Controls */
-.player-controls {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-}
-
-.control-btn {
-    background-color: transparent;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.control-btn:not(:disabled):hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: scale(1.05);
-}
-
-.control-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-#volume-slider {
-    width: 100px;
-    height: 4px;
-    -webkit-appearance: none;
-    background: #535353;
-    border-radius: 2px;
-    outline: none;
-}
-
-#volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: white;
-    cursor: pointer;
-}
-
-#volume-slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: white;
-    cursor: pointer;
-}
-
-/* Responsive adjustments */
-@media (max-height: 700px) {
-    .container {
-        transform: scale(0.9);
-    }
-}
-
-@media (max-height: 600px) {
-    .container {
-        transform: scale(0.8);
-    }
-}
-
-.player-controls-container {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 500px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #181818;
-    padding: 12px;
-    border-radius: 30px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.player-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 20px;
-}
-
-.control-btn {
-    background-color: #1DB954;
-    color: white;
-    border: none;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.control-btn:hover {
-    background-color: #1ed760;
-    transform: scale(1.1);
-}
-
-/* Improved slider handle quality */
-#volume-slider {
-    flex-grow: 1;
-    height: 5px;
-    -webkit-appearance: none;
-    background: #535353;
-    border-radius: 5px;
-    outline: none;
-    transition: background 0.2s;
-}
-
-#volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: white;
-    cursor: pointer;
-    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
-}
-
-#volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: white;
-    cursor: pointer;
-    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
-}
-
