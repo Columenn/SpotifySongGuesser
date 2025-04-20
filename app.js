@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentTrack = null;
     let currentTrackId = null;
     let checkInterval = null;
-    let hideTimeout = null;
     let isShowingInfo = false;
     
     // Initialize
@@ -97,7 +96,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (response.status === 401) {
                 // Token expired
                 clearInterval(checkInterval);
-                if (hideTimeout) clearTimeout(hideTimeout);
                 localStorage.removeItem("spotify_access_token");
                 accessToken = null;
                 authSection.classList.remove('hidden');
@@ -113,9 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function revealSong() {
         if (!currentTrack) return;
         
-        // Clear any existing timeout
-        if (hideTimeout) clearTimeout(hideTimeout);
-        
         // Show the song info and hide reveal button
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
         yearSpan.textContent = currentTrack.album.release_date.split('-')[0];
@@ -124,15 +119,5 @@ document.addEventListener('DOMContentLoaded', function() {
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
         isShowingInfo = true;
-        
-        // Set timeout as fallback (10 seconds)
-        hideTimeout = setTimeout(() => {
-            songInfo.classList.add('hidden');
-            isShowingInfo = false;
-            // Only show reveal button if it's the same song
-            if (currentTrackId === currentTrack?.id) {
-                revealBtn.classList.remove('hidden');
-            }
-        }, 10000);
     }
 });
