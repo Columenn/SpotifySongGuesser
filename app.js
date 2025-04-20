@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Spotify API Config
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97';
-    const redirectUri = window.location.href.split('?')[0]; // Use current page URL
+    const redirectUri = window.location.href.split('?')[0];
     
     // DOM Elements
     const loginBtn = document.getElementById('login-btn');
@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let accessToken = null;
     let currentTrack = null;
+    let currentTrackId = null;
     let checkInterval = null;
+    let hideTimeout = null;
     
     // Initialize
     checkAuth();
@@ -66,20 +68,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.status === 200) {
                 const data = await response.json();
                 if (data.is_playing && data.item) {
+                    // If track changed, hide the song info
+                    if (currentTrackId && data.item.id !== currentTrackId) {
+                        songInfo.classList.add('hidden');
+                    }
+                    
                     currentTrack = data.item;
+                    currentTrackId = data.item.id;
                     statusDiv.textContent = "Song detected!";
                     revealBtn.classList.remove('hidden');
-                    songInfo.classList.add('hidden');
                 } else {
                     statusDiv.textContent = "No song currently playing";
                     revealBtn.classList.add('hidden');
+                    songInfo.classList.add('hidden');
                 }
             } else if (response.status === 204) {
                 statusDiv.textContent = "No song currently playing";
                 revealBtn.classList.add('hidden');
+                songInfo.classList.add('hidden');
             } else if (response.status === 401) {
                 // Token expired
                 clearInterval(checkInterval);
+                if (hideTimeout) clearTimeout(hideTimeout);
                 localStorage.removeItem("spotify_access_token");
                 accessToken = null;
                 authSection.classList.remove('hidden');
@@ -95,11 +105,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function revealSong() {
         if (!currentTrack) return;
         
+        // Clear any existing timeout
+        if (hideTimeout) clearTimeout(hideTimeout);
+        
+        // Show the song info
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
         yearSpan.textContent = currentTrack.album.release_date.split('-')[0];
         songNameSpan.textContent = currentTrack.name;
         
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
+        
+        // Set timeout as fallback (10 seconds)
+        hideTimeout = setTimeout(() => {
+            songInfo.classList.add('hidden');
+        }, 10000);
     }
 });
