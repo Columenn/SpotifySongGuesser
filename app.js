@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Spotify API Config
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97';
     const redirectUri = window.location.origin + window.location.pathname;
-    const SCOPES = 'user-read-currently-playing';
+    const SCOPES = 'user-read-currently-playing user-modify-playback-state user-read-private';
 
     // DOM Elements
     const loginBtn = document.getElementById('login-btn');
@@ -14,12 +14,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const artistSpan = document.getElementById('artist');
     const yearSpan = document.getElementById('year');
     const songNameSpan = document.getElementById('song-name');
+    const skipBtn = document.getElementById('skip-btn');
 
     let accessToken = null;
     let currentTrack = null;
     let currentTrackId = null;
     let checkInterval = null;
     let isShowingInfo = false;
+    let isPremium = false;
 
     // --- PKCE Helpers ---
     function generateRandomString(length) {
@@ -105,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (data.refresh_token) {
             localStorage.setItem('spotify_refresh_token', data.refresh_token);
         }
-        // Store expiry time (expires_in is in seconds)
         const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
         localStorage.setItem('spotify_token_expires_at', expiresAt.toString());
     }
@@ -115,17 +116,32 @@ document.addEventListener('DOMContentLoaded', function () {
         return Date.now() > expiresAt;
     }
 
+    // --- Premium check ---
+    async function checkPremium() {
+        try {
+            const response = await fetch('https://api.spotify.com/v1/me', {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            isPremium = data.product === 'premium';
+            localStorage.setItem('spotify_is_premium', isPremium ? 'true' : 'false');
+        } catch (err) {
+            console.error('Could not check premium status:', err);
+        }
+    }
+
     async function checkAuth() {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
 
         if (code) {
-            // Clean URL immediately
             window.history.replaceState({}, document.title, window.location.pathname);
             try {
                 const tokenData = await exchangeCodeForToken(code);
                 localStorage.removeItem('spotify_pkce_verifier');
                 saveTokens(tokenData);
+                await checkPremium();
                 startMonitoring();
             } catch (err) {
                 console.error('Auth error:', err);
@@ -143,6 +159,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
             }
+            // Restore cached premium status, then re-verify in background
+            isPremium = localStorage.getItem('spotify_is_premium') === 'true';
+            checkPremium();
             startMonitoring();
         }
     }
@@ -151,7 +170,9 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.removeItem('spotify_access_token');
         localStorage.removeItem('spotify_refresh_token');
         localStorage.removeItem('spotify_token_expires_at');
+        localStorage.removeItem('spotify_is_premium');
         accessToken = null;
+        isPremium = false;
         authSection.classList.remove('hidden');
         gameSection.classList.add('hidden');
     }
@@ -164,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function checkCurrentlyPlaying() {
-        // Proactively refresh token if near expiry
         if (isTokenExpired()) {
             const refreshed = await refreshAccessToken();
             if (!refreshed) {
@@ -216,6 +236,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function skipToNext() {
+        if (isTokenExpired()) await refreshAccessToken();
+
+        skipBtn.classList.add('spinning');
+        setTimeout(() => skipBtn.classList.remove('spinning'), 500);
+
+        try {
+            await fetch('https://api.spotify.com/v1/me/player/next', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+
+            // Optimistically reset UI — polling will pick up the new track
+            songInfo.classList.add('hidden');
+            revealBtn.classList.add('hidden');
+            isShowingInfo = false;
+            currentTrackId = null;
+            statusDiv.textContent = 'Skipping...';
+        } catch (error) {
+            console.error('Error skipping track:', error);
+        }
+    }
+
     revealBtn.addEventListener('click', () => {
         if (!currentTrack) return;
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
@@ -224,8 +267,14 @@ document.addEventListener('DOMContentLoaded', function () {
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
         isShowingInfo = true;
+
+        // Only show skip button for premium users
+        if (isPremium) {
+            skipBtn.classList.remove('hidden');
+        }
     });
 
-    // Kick off auth check
+    skipBtn.addEventListener('click', skipToNext);
+
     checkAuth();
 });

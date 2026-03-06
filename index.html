@@ -12,12 +12,9 @@
 <body>
     <div class="container">
         <h1>Spotify Song Guesser</h1>
-
         <div id="auth-section">
             <button id="login-btn">Login with Spotify</button>
-
         </div>
-
         <div id="game-section" class="hidden">
             <div id="status">Waiting for song to play...</div>
             <button id="reveal-btn" class="hidden">Reveal Song</button>
@@ -27,12 +24,16 @@
                 </div>
                 <div class="year" id="year"></div>
                 <div class="song-name" id="song-name"></div>
+                <button id="skip-btn" class="hidden skip-btn" title="Skip to next song">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28"
+                        height="28">
+                        <path d="M6 18V6l8.5 6L6 18zm8.5 0V6H17v12h-2.5z" />
+                    </svg>
+                </button>
             </div>
         </div>
-
-        <p class="note">V2.4</p>
+        <p class="note">V2.5/p>
     </div>
-
     <script src="app.js"></script>
 </body>
 

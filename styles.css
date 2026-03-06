@@ -82,3 +82,42 @@ button:hover {
     font-size: 12px;
     margin-top: 10px;
 }
+
+/* Skip button */
+.skip-btn {
+    margin-top: 18px;
+    background: none;
+    border: 2px solid #1DB954;
+    border-radius: 50%;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #1DB954;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.skip-btn:hover {
+    background-color: rgba(29, 185, 84, 0.15);
+    transform: scale(1.1);
+}
+
+.skip-btn.spinning {
+    animation: spin-once 0.5s ease;
+}
+
+@keyframes spin-once {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    50% {
+        transform: scale(1.15) rotate(180deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(360deg);
+    }
+}
