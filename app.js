@@ -217,13 +217,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (currentTrackId && data.item.id !== currentTrackId) {
                         isShowingInfo = false;
                         songInfo.classList.add('hidden');
-                        setRevealLoading(false);
                     }
                     currentTrack = data.item;
                     currentTrackId = data.item.id;
                     setPlayingState(data.is_playing);
                     statusDiv.textContent = data.is_playing ? 'Song detected!' : 'Song paused';
                     if (!isShowingInfo) {
+                        setRevealLoading(false);
                         revealBtn.classList.remove('hidden');
                     }
                 } else {
