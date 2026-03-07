@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // DOM Elements
     const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
     const authSection = document.getElementById('auth-section');
     const gameSection = document.getElementById('game-section');
     const statusDiv = document.getElementById('status');
@@ -14,7 +15,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const artistSpan = document.getElementById('artist');
     const yearSpan = document.getElementById('year');
     const songNameSpan = document.getElementById('song-name');
+    const cardBg = document.getElementById('card-bg');
     const skipBtn = document.getElementById('skip-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const playpauseBtn = document.getElementById('playpause-btn');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
 
     let accessToken = null;
     let currentTrack = null;
@@ -22,8 +28,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let checkInterval = null;
     let isShowingInfo = false;
     let isPremium = false;
+    let isPlaying = false;
 
-    // --- PKCE Helpers ---
+    // ── PKCE Helpers ──────────────────────────────────────────
     function generateRandomString(length) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const array = new Uint8Array(length);
@@ -39,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
-    // --- Auth ---
+    // ── Auth ──────────────────────────────────────────────────
     loginBtn.addEventListener('click', async () => {
         const verifier = generateRandomString(64);
         const challenge = await generateCodeChallenge(verifier);
@@ -53,8 +60,12 @@ document.addEventListener('DOMContentLoaded', function () {
             code_challenge_method: 'S256',
             code_challenge: challenge,
         });
-
         window.location.href = `https://accounts.spotify.com/authorize?${params}`;
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        clearInterval(checkInterval);
+        clearStoredAuth();
     });
 
     async function exchangeCodeForToken(code) {
@@ -72,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 code_verifier: verifier,
             }),
         });
-
         if (!response.ok) throw new Error('Token exchange failed');
         return response.json();
     }
@@ -80,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
     async function refreshAccessToken() {
         const refreshToken = localStorage.getItem('spotify_refresh_token');
         if (!refreshToken) return false;
-
         try {
             const response = await fetch('https://accounts.spotify.com/api/token', {
                 method: 'POST',
@@ -91,44 +100,35 @@ document.addEventListener('DOMContentLoaded', function () {
                     refresh_token: refreshToken,
                 }),
             });
-
             if (!response.ok) return false;
-            const data = await response.json();
-            saveTokens(data);
+            saveTokens(await response.json());
             return true;
-        } catch {
-            return false;
-        }
+        } catch { return false; }
     }
 
     function saveTokens(data) {
         accessToken = data.access_token;
         localStorage.setItem('spotify_access_token', data.access_token);
-        if (data.refresh_token) {
-            localStorage.setItem('spotify_refresh_token', data.refresh_token);
-        }
+        if (data.refresh_token) localStorage.setItem('spotify_refresh_token', data.refresh_token);
         const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
         localStorage.setItem('spotify_token_expires_at', expiresAt.toString());
     }
 
     function isTokenExpired() {
-        const expiresAt = parseInt(localStorage.getItem('spotify_token_expires_at') || '0');
-        return Date.now() > expiresAt;
+        return Date.now() > parseInt(localStorage.getItem('spotify_token_expires_at') || '0');
     }
 
-    // --- Premium check ---
+    // ── Premium check ─────────────────────────────────────────
     async function checkPremium() {
         try {
-            const response = await fetch('https://api.spotify.com/v1/me', {
+            const res = await fetch('https://api.spotify.com/v1/me', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            if (!response.ok) return;
-            const data = await response.json();
+            if (!res.ok) return;
+            const data = await res.json();
             isPremium = data.product === 'premium';
             localStorage.setItem('spotify_is_premium', isPremium ? 'true' : 'false');
-        } catch (err) {
-            console.error('Could not check premium status:', err);
-        }
+        } catch (err) { console.error('Premium check failed:', err); }
     }
 
     async function checkAuth() {
@@ -154,12 +154,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (accessToken) {
             if (isTokenExpired()) {
                 const refreshed = await refreshAccessToken();
-                if (!refreshed) {
-                    clearStoredAuth();
-                    return;
-                }
+                if (!refreshed) { clearStoredAuth(); return; }
             }
-            // Restore cached premium status, then re-verify in background
             isPremium = localStorage.getItem('spotify_is_premium') === 'true';
             checkPremium();
             startMonitoring();
@@ -175,13 +171,27 @@ document.addEventListener('DOMContentLoaded', function () {
         isPremium = false;
         authSection.classList.remove('hidden');
         gameSection.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
     }
 
     function startMonitoring() {
         authSection.classList.add('hidden');
         gameSection.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
         checkInterval = setInterval(checkCurrentlyPlaying, 2000);
         checkCurrentlyPlaying();
+    }
+
+    // ── Playback state ────────────────────────────────────────
+    function setPlayingState(playing) {
+        isPlaying = playing;
+        if (playing) {
+            playIcon.classList.add('hidden');
+            pauseIcon.classList.remove('hidden');
+        } else {
+            pauseIcon.classList.add('hidden');
+            playIcon.classList.remove('hidden');
+        }
     }
 
     async function checkCurrentlyPlaying() {
@@ -202,26 +212,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (response.status === 200) {
                 const data = await response.json();
-                if (data.is_playing && data.item) {
+                if (data.item) {
+                    // Track changed — reset card
                     if (currentTrackId && data.item.id !== currentTrackId) {
                         isShowingInfo = false;
                         songInfo.classList.add('hidden');
                     }
                     currentTrack = data.item;
                     currentTrackId = data.item.id;
-                    statusDiv.textContent = 'Song detected!';
+                    setPlayingState(data.is_playing);
+                    statusDiv.textContent = data.is_playing ? 'Song detected!' : 'Song paused';
                     if (!isShowingInfo) revealBtn.classList.remove('hidden');
                 } else {
-                    statusDiv.textContent = 'No song currently playing';
-                    revealBtn.classList.add('hidden');
-                    songInfo.classList.add('hidden');
-                    isShowingInfo = false;
+                    resetToIdle();
                 }
             } else if (response.status === 204) {
-                statusDiv.textContent = 'No song currently playing';
-                revealBtn.classList.add('hidden');
-                songInfo.classList.add('hidden');
-                isShowingInfo = false;
+                resetToIdle();
             } else if (response.status === 401) {
                 const refreshed = await refreshAccessToken();
                 if (!refreshed) {
@@ -236,45 +242,90 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    async function skipToNext() {
-        if (isTokenExpired()) await refreshAccessToken();
+    function resetToIdle() {
+        statusDiv.textContent = 'No song currently playing';
+        revealBtn.classList.add('hidden');
+        songInfo.classList.add('hidden');
+        isShowingInfo = false;
+        setPlayingState(false);
+    }
 
+    // ── Controls ──────────────────────────────────────────────
+    async function ensureFreshToken() {
+        if (isTokenExpired()) await refreshAccessToken();
+    }
+
+    async function skipToNext() {
+        await ensureFreshToken();
         skipBtn.classList.add('spinning');
         setTimeout(() => skipBtn.classList.remove('spinning'), 500);
-
         try {
             await fetch('https://api.spotify.com/v1/me/player/next', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-
-            // Optimistically reset UI — polling will pick up the new track
             songInfo.classList.add('hidden');
             revealBtn.classList.add('hidden');
             isShowingInfo = false;
             currentTrackId = null;
             statusDiv.textContent = 'Skipping...';
-        } catch (error) {
-            console.error('Error skipping track:', error);
-        }
+        } catch (err) { console.error('Skip error:', err); }
     }
 
+    async function restartSong() {
+        await ensureFreshToken();
+        try {
+            await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=0', {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+        } catch (err) { console.error('Restart error:', err); }
+    }
+
+    async function togglePlayPause() {
+        await ensureFreshToken();
+        try {
+            const endpoint = isPlaying
+                ? 'https://api.spotify.com/v1/me/player/pause'
+                : 'https://api.spotify.com/v1/me/player/play';
+            await fetch(endpoint, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            setPlayingState(!isPlaying);
+        } catch (err) { console.error('Play/pause error:', err); }
+    }
+
+    // ── Reveal ────────────────────────────────────────────────
     revealBtn.addEventListener('click', () => {
         if (!currentTrack) return;
+
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
         yearSpan.textContent = currentTrack.album.release_date.split('-')[0];
         songNameSpan.textContent = currentTrack.name;
+
+        // Set album art as blurred card background
+        const albumArt = currentTrack.album.images[0]?.url;
+        if (albumArt) {
+            cardBg.style.backgroundImage = `url(${albumArt})`;
+        }
+
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
         isShowingInfo = true;
 
-        // Only show skip button for premium users
+        // Only show playback controls for premium users
+        const controlsBar = document.getElementById('controls-bar');
         if (isPremium) {
-            skipBtn.classList.remove('hidden');
+            controlsBar.classList.remove('hidden');
+        } else {
+            controlsBar.classList.add('hidden');
         }
     });
 
     skipBtn.addEventListener('click', skipToNext);
+    restartBtn.addEventListener('click', restartSong);
+    playpauseBtn.addEventListener('click', togglePlayPause);
 
     checkAuth();
 });

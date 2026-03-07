@@ -10,30 +10,70 @@
 </head>
 
 <body>
+    <button id="logout-btn" class="hidden" title="Log out">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M16 13v-2H7V8l-5 4 5 4v-3z" />
+            <path d="M20 3h-9a2 2 0 0 0-2 2v4h2V5h9v14h-9v-4H9v4a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+        </svg>
+        Logout
+    </button>
+
     <div class="container">
         <h1>Spotify Song Guesser</h1>
+
         <div id="auth-section">
             <button id="login-btn">Login with Spotify</button>
         </div>
+
         <div id="game-section" class="hidden">
             <div id="status">Waiting for song to play...</div>
             <button id="reveal-btn" class="hidden">Reveal Song</button>
+
+            <!-- Square song card with blurred cover background -->
             <div id="song-info" class="hidden">
-                <div class="artist-features">
-                    <span id="artist"></span>
+                <div id="song-card">
+                    <div id="card-bg"></div>
+                    <div id="card-content">
+                        <div class="artist-features">
+                            <span id="artist"></span>
+                        </div>
+                        <div class="year" id="year"></div>
+                        <div class="song-name" id="song-name"></div>
+                    </div>
                 </div>
-                <div class="year" id="year"></div>
-                <div class="song-name" id="song-name"></div>
-                <button id="skip-btn" class="hidden skip-btn" title="Skip to next song">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28"
-                        height="28">
-                        <path d="M6 18V6l8.5 6L6 18zm8.5 0V6H17v12h-2.5z" />
-                    </svg>
-                </button>
+
+                <!-- Playback controls bar -->
+                <div id="controls-bar">
+                    <button class="ctrl-btn" id="restart-btn" title="Restart song">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24"
+                            height="24">
+                            <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+                        </svg>
+                    </button>
+                    <button class="ctrl-btn ctrl-main" id="playpause-btn" title="Play / Pause">
+                        <!-- Filled dynamically by JS -->
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                            width="28" height="28">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                            width="28" height="28" class="hidden">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                    </button>
+                    <button class="ctrl-btn skip-btn" id="skip-btn" title="Skip to next song">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24"
+                            height="24">
+                            <path d="M6 18V6l8.5 6L6 18zm8.5 0V6H17v12h-2.5z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
-        <p class="note">V2.6</p>
+
+        <p class="note">V2.7</p>
     </div>
+
     <script src="app.js"></script>
 </body>
 
