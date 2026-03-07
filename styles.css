@@ -177,7 +177,34 @@ button:hover {
     transform: scale(1.08);
 }
 
-/* Skip spin animation */
+/* Reveal button loading state */
+#reveal-btn.loading {
+    opacity: 0.5;
+    cursor: not-allowed;
+    position: relative;
+    padding-left: 40px;
+}
+
+#reveal-btn.loading::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
 .skip-btn.spinning {
     animation: spin-once 0.5s ease;
 }

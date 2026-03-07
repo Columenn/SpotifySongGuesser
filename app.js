@@ -217,12 +217,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (currentTrackId && data.item.id !== currentTrackId) {
                         isShowingInfo = false;
                         songInfo.classList.add('hidden');
+                        setRevealLoading(false);
                     }
                     currentTrack = data.item;
                     currentTrackId = data.item.id;
                     setPlayingState(data.is_playing);
                     statusDiv.textContent = data.is_playing ? 'Song detected!' : 'Song paused';
-                    if (!isShowingInfo) revealBtn.classList.remove('hidden');
+                    if (!isShowingInfo) {
+                        revealBtn.classList.remove('hidden');
+                    }
                 } else {
                     resetToIdle();
                 }
@@ -250,6 +253,18 @@ document.addEventListener('DOMContentLoaded', function () {
         setPlayingState(false);
     }
 
+    // ── Loading state ─────────────────────────────────────────
+    function setRevealLoading(loading) {
+        if (loading) {
+            revealBtn.classList.remove('hidden');
+            revealBtn.disabled = true;
+            revealBtn.classList.add('loading');
+        } else {
+            revealBtn.disabled = false;
+            revealBtn.classList.remove('loading');
+        }
+    }
+
     // ── Controls ──────────────────────────────────────────────
     async function ensureFreshToken() {
         if (isTokenExpired()) await refreshAccessToken();
@@ -265,10 +280,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             songInfo.classList.add('hidden');
-            revealBtn.classList.add('hidden');
             isShowingInfo = false;
             currentTrackId = null;
-            statusDiv.textContent = 'Skipping...';
+            setRevealLoading(true);
         } catch (err) { console.error('Skip error:', err); }
     }
 
