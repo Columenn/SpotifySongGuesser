@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function skipToNext() {
         await ensureFreshToken();
         skipBtn.classList.add('pressed');
-        setTimeout(() => skipBtn.classList.remove('pressed'), 300);
+        setTimeout(() => skipBtn.classList.remove('pressed'), 150);
         try {
             await fetch('https://api.spotify.com/v1/me/player/next', {
                 method: 'POST',
@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function restartSong() {
         await ensureFreshToken();
         restartBtn.classList.add('pressed');
-        setTimeout(() => restartBtn.classList.remove('pressed'), 300);
+        setTimeout(() => restartBtn.classList.remove('pressed'), 150);
         try {
             await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=0', {
                 method: 'PUT',
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function togglePlayPause() {
         await ensureFreshToken();
         playpauseBtn.classList.add('pressed');
-        setTimeout(() => playpauseBtn.classList.remove('pressed'), 300);
+        setTimeout(() => playpauseBtn.classList.remove('pressed'), 150);
         try {
             const endpoint = isPlaying
                 ? 'https://api.spotify.com/v1/me/player/pause'
