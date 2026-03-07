@@ -44,10 +44,23 @@ button:hover {
     background-color: #1ed760;
 }
 
+.bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding: 0 2px;
+}
+
 #status {
-    margin: 20px 0;
     color: #b3b3b3;
+    font-size: 13px;
     min-height: 20px;
+}
+
+.note {
+    color: #535353;
+    font-size: 12px;
 }
 
 /* ── Song card ──────────────────────────────── */
@@ -212,10 +225,4 @@ button:hover {
 /* ── Utilities ──────────────────────────────── */
 .hidden {
     display: none !important;
-}
-
-.note {
-    color: #535353;
-    font-size: 12px;
-    margin-top: 20px;
 }

@@ -7,6 +7,8 @@
     <title>Spotify Song Guesser</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231DB954'/><path d='M28 38c12-4 28-4 44 4M28 50c10-3 24-3 38 3M28 62c8-2 18-2 30 2' stroke='white' stroke-width='7' stroke-linecap='round' fill='none'/></svg>">
 </head>
 
 <body>
@@ -26,7 +28,6 @@
         </div>
 
         <div id="game-section" class="hidden">
-            <div id="status">Waiting for song to play...</div>
             <button id="reveal-btn" class="hidden">Reveal Song</button>
 
             <!-- Square song card with blurred cover background -->
@@ -72,7 +73,10 @@
             </div>
         </div>
 
-        <p class="note">V2.10</p>
+        <div class="bottom-bar">
+            <span id="status">Waiting for song to play...</span>
+            <span class="note">V2.11</span>
+        </div>
     </div>
 
     <script src="app.js"></script>
