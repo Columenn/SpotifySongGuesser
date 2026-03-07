@@ -199,14 +199,34 @@ button:active {
 }
 
 .ctrl-btn:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: #b3b3b3;
+    background-color: rgba(29, 185, 84, 0.1);
+    border-color: #1DB954;
     color: white;
     transform: scale(1.12);
+    box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.18);
 }
 
 .ctrl-btn:active {
     transform: scale(0.93);
+    box-shadow: none;
+}
+
+.ctrl-btn.pressed {
+    animation: btn-press 0.28s ease;
+}
+
+@keyframes btn-press {
+    0% {
+        transform: scale(1);
+    }
+
+    40% {
+        transform: scale(0.88);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* Larger centre play/pause button */

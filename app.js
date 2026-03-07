@@ -258,14 +258,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ── Loading state ─────────────────────────────────────────
+    let loadingStartTime = 0;
+    const MIN_LOADING_MS = 500;
+
     function setRevealLoading(loading) {
         if (loading) {
+            loadingStartTime = Date.now();
             revealBtn.classList.remove('hidden');
             revealBtn.disabled = true;
             revealBtn.classList.add('loading');
         } else {
-            revealBtn.disabled = false;
-            revealBtn.classList.remove('loading');
+            const elapsed = Date.now() - loadingStartTime;
+            const remaining = MIN_LOADING_MS - elapsed;
+            if (remaining > 0) {
+                setTimeout(() => {
+                    revealBtn.disabled = false;
+                    revealBtn.classList.remove('loading');
+                }, remaining);
+            } else {
+                revealBtn.disabled = false;
+                revealBtn.classList.remove('loading');
+            }
         }
     }
 
@@ -276,8 +289,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function skipToNext() {
         await ensureFreshToken();
-        skipBtn.classList.add('spinning');
-        setTimeout(() => skipBtn.classList.remove('spinning'), 500);
+        skipBtn.classList.add('pressed');
+        setTimeout(() => skipBtn.classList.remove('pressed'), 300);
         try {
             await fetch('https://api.spotify.com/v1/me/player/next', {
                 method: 'POST',
@@ -294,6 +307,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function restartSong() {
         await ensureFreshToken();
+        restartBtn.classList.add('pressed');
+        setTimeout(() => restartBtn.classList.remove('pressed'), 300);
         try {
             await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=0', {
                 method: 'PUT',
@@ -304,6 +319,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function togglePlayPause() {
         await ensureFreshToken();
+        playpauseBtn.classList.add('pressed');
+        setTimeout(() => playpauseBtn.classList.remove('pressed'), 300);
         try {
             const endpoint = isPlaying
                 ? 'https://api.spotify.com/v1/me/player/pause'
