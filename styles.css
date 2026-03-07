@@ -74,7 +74,7 @@ button:hover {
     inset: 0;
     background-size: cover;
     background-position: center;
-    filter: blur(8px) brightness(0.5) saturate(1.4);
+    filter: blur(4px) brightness(0.45) saturate(1.4);
     transform: scale(1.1);
     /* prevent blur edge gaps */
     transition: background-image 0.4s ease;
@@ -117,12 +117,11 @@ button:hover {
 #controls-bar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
+    justify-content: space-evenly;
     margin-top: 18px;
     padding: 14px 20px;
     background-color: #1e1e1e;
-    border-radius: 50px;
+    border-radius: 14px;
 }
 
 .ctrl-btn {
