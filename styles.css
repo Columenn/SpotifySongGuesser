@@ -23,6 +23,7 @@ h1 {
     color: #1DB954;
     margin-bottom: 30px;
     font-size: clamp(22px, 5vw, 30px);
+    animation: fade-down 0.6s ease both;
 }
 
 /* Generic button base */
@@ -34,14 +35,21 @@ button {
     padding: 12px 24px;
     cursor: pointer;
     font-weight: bold;
-    transition: background-color 0.3s;
     font-size: 16px;
     margin: 10px 0;
     font-family: 'Montserrat', sans-serif;
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 button:hover {
     background-color: #1ed760;
+    transform: scale(1.04);
+    box-shadow: 0 4px 20px rgba(29, 185, 84, 0.35);
+}
+
+button:active {
+    transform: scale(0.97);
+    box-shadow: none;
 }
 
 /* Corner labels */
@@ -63,12 +71,18 @@ button:hover {
 
 #status {
     min-height: auto;
+    transition: opacity 0.3s ease;
 }
 
 /* ── Song card ──────────────────────────────── */
 #song-info {
     margin: 16px auto 0;
     max-width: 380px;
+}
+
+/* Card entrance */
+#song-info.revealing #song-card {
+    animation: card-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 #song-card {
@@ -91,8 +105,12 @@ button:hover {
     background-position: center;
     filter: blur(4px) brightness(0.35) saturate(1.4);
     transform: scale(1.1);
-    /* prevent blur edge gaps */
-    transition: background-image 0.4s ease;
+    transition: background-image 0.4s ease, opacity 0.5s ease;
+    opacity: 0;
+}
+
+#card-bg.loaded {
+    opacity: 1;
 }
 
 /* Text sits above the blurred bg */
@@ -109,6 +127,9 @@ button:hover {
     color: #ccc;
     margin-bottom: 8px;
     letter-spacing: 0.03em;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .year {
@@ -118,6 +139,9 @@ button:hover {
     color: #1DB954;
     line-height: 1;
     text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
 }
 
 .song-name {
@@ -126,6 +150,17 @@ button:hover {
     margin-top: 8px;
     color: #fff;
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
+}
+
+/* Trigger text animations */
+#song-info.revealed .artist-features,
+#song-info.revealed .year,
+#song-info.revealed .song-name {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* ── Controls bar ───────────────────────────── */
@@ -137,6 +172,14 @@ button:hover {
     padding: 14px 20px;
     background-color: #1e1e1e;
     border-radius: 14px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease 0.3s, transform 0.4s ease 0.3s;
+}
+
+#controls-bar.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .ctrl-btn {
@@ -152,15 +195,18 @@ button:hover {
     justify-content: center;
     color: #b3b3b3;
     cursor: pointer;
-    transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ctrl-btn:hover {
-    background: none;
     background-color: rgba(255, 255, 255, 0.08);
     border-color: #b3b3b3;
     color: white;
-    transform: scale(1.1);
+    transform: scale(1.12);
+}
+
+.ctrl-btn:active {
+    transform: scale(0.93);
 }
 
 /* Larger centre play/pause button */
@@ -169,12 +215,19 @@ button:hover {
     height: 58px;
     background-color: #1DB954 !important;
     color: white !important;
+    border: none !important;
     border-radius: 50%;
 }
 
 .ctrl-main:hover {
     background-color: #1ed760 !important;
-    transform: scale(1.08);
+    transform: scale(1.1);
+    box-shadow: 0 4px 18px rgba(29, 185, 84, 0.4) !important;
+}
+
+.ctrl-main:active {
+    transform: scale(0.95) !important;
+    box-shadow: none !important;
 }
 
 /* Reveal button — always same size */
@@ -182,12 +235,15 @@ button:hover {
     min-width: 160px;
     text-align: center;
     position: relative;
+    animation: fade-up 0.4s ease both;
 }
 
 /* Reveal button loading state */
 #reveal-btn.loading {
     opacity: 0.55;
     cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 #reveal-btn.loading .btn-text {
@@ -213,6 +269,7 @@ button:hover {
 .dot {
     opacity: 0;
     animation: dot-fade 1.2s infinite;
+    font-size: 10px;
 }
 
 .dot:nth-child(1) {
@@ -240,6 +297,7 @@ button:hover {
     }
 }
 
+/* Skip spin */
 .skip-btn.spinning {
     animation: spin-once 0.5s ease;
 }
@@ -273,18 +331,59 @@ button:hover {
     align-items: center;
     gap: 6px;
     margin: 0;
-    transition: border-color 0.2s ease, color 0.2s ease;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    box-shadow: none !important;
 }
 
 #logout-btn:hover {
     background: none;
+    background-color: transparent !important;
     border-color: #e0223a;
     color: #e0223a;
+    transform: none;
 }
 
 #logout-btn:active {
     border-color: #b01a2e;
     color: #b01a2e;
+    transform: scale(0.97);
+}
+
+/* ── Global keyframes ───────────────────────── */
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes card-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ── Utilities ──────────────────────────────── */

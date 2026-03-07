@@ -217,6 +217,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (currentTrackId && data.item.id !== currentTrackId) {
                         isShowingInfo = false;
                         songInfo.classList.add('hidden');
+                        songInfo.classList.remove('revealed', 'revealing');
+                        cardBg.classList.remove('loaded');
                     }
                     currentTrack = data.item;
                     currentTrackId = data.item.id;
@@ -249,6 +251,8 @@ document.addEventListener('DOMContentLoaded', function () {
         statusDiv.textContent = 'No song currently playing';
         revealBtn.classList.add('hidden');
         songInfo.classList.add('hidden');
+        songInfo.classList.remove('revealed', 'revealing');
+        cardBg.classList.remove('loaded');
         isShowingInfo = false;
         setPlayingState(false);
     }
@@ -280,6 +284,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             songInfo.classList.add('hidden');
+            songInfo.classList.remove('revealed', 'revealing');
+            cardBg.classList.remove('loaded');
             isShowingInfo = false;
             currentTrackId = null;
             setRevealLoading(true);
@@ -324,17 +330,36 @@ document.addEventListener('DOMContentLoaded', function () {
             cardBg.style.backgroundImage = `url(${albumArt})`;
         }
 
+        // Reset animation classes
+        songInfo.classList.remove('revealed', 'revealing');
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
         isShowingInfo = true;
 
-        // Only show playback controls for premium users
-        const controlsBar = document.getElementById('controls-bar');
-        if (isPremium) {
-            controlsBar.classList.remove('hidden');
-        } else {
-            controlsBar.classList.add('hidden');
-        }
+        // 1. Card pops in
+        requestAnimationFrame(() => {
+            songInfo.classList.add('revealing');
+
+            // 2. Fade in the album art bg
+            requestAnimationFrame(() => {
+                cardBg.classList.add('loaded');
+            });
+
+            // 3. Staggered text slides up
+            setTimeout(() => {
+                songInfo.classList.add('revealed');
+            }, 80);
+
+            // 4. Controls bar slides up
+            const controlsBar = document.getElementById('controls-bar');
+            if (isPremium) {
+                controlsBar.classList.remove('hidden');
+                setTimeout(() => controlsBar.classList.add('visible'), 100);
+            } else {
+                controlsBar.classList.add('hidden');
+                controlsBar.classList.remove('visible');
+            }
+        });
     });
 
     skipBtn.addEventListener('click', skipToNext);
