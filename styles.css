@@ -44,23 +44,25 @@ button:hover {
     background-color: #1ed760;
 }
 
-.bottom-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 16px;
-    padding: 0 2px;
+/* Corner labels */
+.corner-label {
+    position: fixed;
+    bottom: 16px;
+    color: #535353;
+    font-size: 12px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.corner-bl {
+    left: 16px;
+}
+
+.corner-br {
+    right: 16px;
 }
 
 #status {
-    color: #b3b3b3;
-    font-size: 13px;
-    min-height: 20px;
-}
-
-.note {
-    color: #535353;
-    font-size: 12px;
+    min-height: auto;
 }
 
 /* ── Song card ──────────────────────────────── */
@@ -139,7 +141,7 @@ button:hover {
 
 .ctrl-btn {
     background: none;
-    border: none;
+    border: 2px solid #535353;
     border-radius: 50%;
     width: 46px;
     height: 46px;
@@ -150,12 +152,13 @@ button:hover {
     justify-content: center;
     color: #b3b3b3;
     cursor: pointer;
-    transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+    transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .ctrl-btn:hover {
     background: none;
     background-color: rgba(255, 255, 255, 0.08);
+    border-color: #b3b3b3;
     color: white;
     transform: scale(1.1);
 }
