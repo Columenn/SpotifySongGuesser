@@ -74,7 +74,7 @@ button:hover {
     inset: 0;
     background-size: cover;
     background-position: center;
-    filter: blur(4px) brightness(0.45) saturate(1.4);
+    filter: blur(4px) brightness(0.35) saturate(1.4);
     transform: scale(1.1);
     /* prevent blur edge gaps */
     transition: background-image 0.4s ease;
@@ -200,8 +200,13 @@ button:hover {
 
 #logout-btn:hover {
     background: none;
-    border-color: #b3b3b3;
-    color: white;
+    border-color: #e0223a;
+    color: #e0223a;
+}
+
+#logout-btn:active {
+    border-color: #b01a2e;
+    color: #b01a2e;
 }
 
 /* ── Utilities ──────────────────────────────── */
