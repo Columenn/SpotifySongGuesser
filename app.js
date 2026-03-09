@@ -420,8 +420,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const FEATURED_IDS = [
             '3Pft9VkD2PXIK9EPOlVo9Z',
             '26zIHVncgI9HmHlgYWwnDi',
-            '37i9dQZF1DXdfOcg1fm0VG',
             '2jlbmBYM1RLZrsyY67wuDQ',
+            '37i9dQZEVXbMDoHDwVN2tF',
+            '0h4Cwla6c6Yy1QW7mihUsP',
         ];
 
         try {
