@@ -604,6 +604,64 @@ button:active {
     white-space: nowrap;
 }
 
+/* ── User footer ────────────────────────────── */
+#playlist-user-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid #282828;
+    flex-shrink: 0;
+    background-color: #181818;
+}
+
+#playlist-user-avatar-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background-color: #282828;
+}
+
+#playlist-user-avatar {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 50%;
+    display: none;
+}
+
+#playlist-user-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #535353;
+}
+
+#playlist-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#playlist-user-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#playlist-user-label {
+    font-size: 11px;
+    color: #535353;
+}
+
 /* ── Logout button ──────────────────────────── */
 #logout-btn {
     position: fixed;

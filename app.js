@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const playlistOverlay = document.getElementById('playlist-overlay');
     const playlistCloseBtn = document.getElementById('playlist-close-btn');
     const playlistList = document.getElementById('playlist-list');
+    const playlistUserName = document.getElementById('playlist-user-name');
+    const playlistUserAvatar = document.getElementById('playlist-user-avatar');
+    const playlistUserAvatarPh = document.getElementById('playlist-user-avatar-placeholder');
 
     let accessToken = null;
     let currentTrack = null;
@@ -181,6 +184,20 @@ document.addEventListener('DOMContentLoaded', function () {
             isPremium = data.product === 'premium';
             localStorage.setItem('spotify_is_premium', isPremium ? 'true' : 'false');
             Log.info('Premium', `Account type: ${data.product} — isPremium: ${isPremium}`);
+
+            // Populate user footer in playlist panel
+            if (data.display_name) {
+                playlistUserName.textContent = data.display_name;
+            }
+            const avatarUrl = data.images?.[0]?.url;
+            if (avatarUrl) {
+                playlistUserAvatar.src = avatarUrl;
+                playlistUserAvatar.style.display = 'block';
+                playlistUserAvatarPh.style.display = 'none';
+            } else {
+                playlistUserAvatar.style.display = 'none';
+                playlistUserAvatarPh.style.display = 'flex';
+            }
         } catch (err) {
             Log.error('Premium', 'Exception during premium check', err);
         }
@@ -498,8 +515,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const FEATURED_IDS = [
             '3Pft9VkD2PXIK9EPOlVo9Z',
             '26zIHVncgI9HmHlgYWwnDi',
+            '2jlbmBYM1RLZrsyY67wuDQ',
             '0sDahzOkMWOmLXfTMf2N4N',
-            '36Jodgwg2z2ykutmQgwtux',
             '0h4Cwla6c6Yy1QW7mihUsP',
         ];
 
