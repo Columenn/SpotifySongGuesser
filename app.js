@@ -189,6 +189,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.display_name) {
                 playlistUserName.textContent = data.display_name;
             }
+            const userLabel = document.getElementById('playlist-user-label');
+            if (userLabel && data.id) {
+                userLabel.textContent = `Spotify Account (${data.id})`;
+            }
             const avatarUrl = data.images?.[0]?.url;
             if (avatarUrl) {
                 playlistUserAvatar.src = avatarUrl;
