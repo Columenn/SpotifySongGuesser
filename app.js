@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             isPremium = localStorage.getItem('spotify_is_premium') === 'true';
             Log.info('Auth', `Restored session — cached isPremium: ${isPremium}`);
-            checkPremium(); // re-verify in background
+            checkPremium();
             startMonitoring();
         } else {
             Log.info('Auth', 'No stored token — showing login screen');
@@ -498,15 +498,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const FEATURED_IDS = [
             '3Pft9VkD2PXIK9EPOlVo9Z',
             '26zIHVncgI9HmHlgYWwnDi',
-            '2jlbmBYM1RLZrsyY67wuDQ',
             '0sDahzOkMWOmLXfTMf2N4N',
+            '36Jodgwg2z2ykutmQgwtux',
             '0h4Cwla6c6Yy1QW7mihUsP',
         ];
 
         try {
             await ensureFreshToken();
 
-            // Fetch featured playlists in parallel — silently drop failures
             Log.info('Playlists', `Fetching ${FEATURED_IDS.length} featured playlists`);
             const featuredResults = await Promise.all(
                 FEATURED_IDS.map(async id => {
@@ -540,7 +539,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const featured = featuredResults.filter(Boolean);
             Log.info('Playlists', `${featured.length}/${FEATURED_IDS.length} featured playlists loaded successfully`);
 
-            // Fetch first page of user playlists
             Log.info('Playlists', 'Fetching user playlists (page 1)');
             const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=50&offset=0', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -672,7 +670,6 @@ document.addEventListener('DOMContentLoaded', function () {
             item.appendChild(info);
             playlistList.appendChild(item);
 
-            // Marquee on hover
             item.addEventListener('mouseenter', () => {
                 const nameEl = item.querySelector('.playlist-item-name');
                 const overflow = nameEl.scrollWidth - nameEl.clientWidth;
@@ -689,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             item.addEventListener('click', () => {
                 Log.info('Playlists', `User selected playlist: "${p.name}" (${p.uri})`);
-                playPlaylist(p.uri);
+                playPlaylist(p.uri, p.tracks.total);
                 playlistList.querySelectorAll('.playlist-item').forEach(i => {
                     i.classList.remove('active');
                     i.querySelector('.playlist-item-name').style.color = '';
@@ -702,23 +699,41 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    async function playPlaylist(uri) {
+    async function playPlaylist(uri, totalTracks) {
         await ensureFreshToken();
         try {
-            Log.info('Playlists', `Starting playlist: ${uri}`);
+            // Pick a random starting position within the playlist
+            const randomPosition = totalTracks > 1
+                ? Math.floor(Math.random() * totalTracks)
+                : 0;
+            Log.info('Playlists', `Starting playlist: ${uri} — random position ${randomPosition}/${totalTracks}`);
+
             const res = await fetch('https://api.spotify.com/v1/me/player/play', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ context_uri: uri, offset: { position: 0 }, position_ms: 0 })
+                body: JSON.stringify({ context_uri: uri, offset: { position: randomPosition }, position_ms: 0 })
             });
             if (!res.ok) {
                 const body = await res.text().catch(() => '(unreadable)');
                 Log.error('Playlists', `Play playlist failed — HTTP ${res.status}`, body);
                 return;
             }
+
+            // Enable shuffle so subsequent tracks are also random
+            Log.info('Playlists', 'Enabling shuffle');
+            const shuffleRes = await fetch('https://api.spotify.com/v1/me/player/shuffle?state=true', {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!shuffleRes.ok) {
+                Log.warn('Playlists', `Shuffle request failed — HTTP ${shuffleRes.status} (non-fatal)`);
+            } else {
+                Log.info('Playlists', 'Shuffle enabled successfully');
+            }
+
             Log.info('Playlists', 'Playlist started successfully');
             songInfo.classList.add('hidden');
             songInfo.classList.remove('revealed', 'revealing');
