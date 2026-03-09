@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const gameSection = document.getElementById('game-section');
     const statusDiv = document.getElementById('status');
     const revealBtn = document.getElementById('reveal-btn');
+    const idleHint = document.getElementById('idle-hint');
     const songInfo = document.getElementById('song-info');
     const artistSpan = document.getElementById('artist');
     const yearSpan = document.getElementById('year');
@@ -317,6 +318,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     setPlayingState(data.is_playing);
                     statusDiv.textContent = data.is_playing ? 'Song detected!' : 'Song paused';
                     if (!isShowingInfo) {
+                        idleHint.classList.add('hidden');
                         setRevealLoading(false);
                         revealBtn.classList.remove('hidden');
                     }
@@ -346,6 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function resetToIdle() {
         statusDiv.textContent = 'No song currently playing';
         revealBtn.classList.add('hidden');
+        idleHint.classList.remove('hidden');
         songInfo.classList.add('hidden');
         songInfo.classList.remove('revealed', 'revealing');
         cardBg.classList.remove('loaded');

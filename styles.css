@@ -245,6 +245,16 @@ button:active {
     box-shadow: none !important;
 }
 
+/* Idle hint */
+#idle-hint {
+    margin: 10px auto 0;
+    max-width: 280px;
+    font-size: 13px;
+    color: #535353;
+    line-height: 1.5;
+    animation: fade-up 0.4s ease both;
+}
+
 /* Reveal button */
 #reveal-btn {
     min-width: 160px;
