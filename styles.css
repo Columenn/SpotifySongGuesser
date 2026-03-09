@@ -80,7 +80,6 @@ button:active {
     max-width: 380px;
 }
 
-/* Card entrance */
 #song-info.revealing #song-card {
     animation: card-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -97,7 +96,6 @@ button:active {
     justify-content: center;
 }
 
-/* Blurred album art background */
 #card-bg {
     position: absolute;
     inset: 0;
@@ -113,7 +111,6 @@ button:active {
     opacity: 1;
 }
 
-/* Text sits above the blurred bg */
 #card-content {
     position: relative;
     z-index: 1;
@@ -155,7 +152,6 @@ button:active {
     transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
 }
 
-/* Trigger text animations */
 #song-info.revealed .artist-features,
 #song-info.revealed .year,
 #song-info.revealed .song-name {
@@ -229,7 +225,6 @@ button:active {
     }
 }
 
-/* Larger centre play/pause button */
 .ctrl-main {
     width: 58px;
     height: 58px;
@@ -250,7 +245,7 @@ button:active {
     box-shadow: none !important;
 }
 
-/* Reveal button — always same size */
+/* Reveal button */
 #reveal-btn {
     min-width: 160px;
     text-align: center;
@@ -258,7 +253,6 @@ button:active {
     animation: fade-up 0.4s ease both;
 }
 
-/* Reveal button loading state */
 #reveal-btn.loading {
     opacity: 0.55;
     cursor: not-allowed;
@@ -314,25 +308,6 @@ button:active {
 
     40% {
         opacity: 1;
-    }
-}
-
-/* Skip spin */
-.skip-btn.spinning {
-    animation: spin-once 0.5s ease;
-}
-
-@keyframes spin-once {
-    0% {
-        transform: scale(1) rotate(0deg);
-    }
-
-    50% {
-        transform: scale(1.15) rotate(180deg);
-    }
-
-    100% {
-        transform: scale(1) rotate(360deg);
     }
 }
 
@@ -469,6 +444,22 @@ button:active {
     letter-spacing: 0.1em;
 }
 
+.playlist-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #535353;
+    padding: 10px 20px 6px;
+}
+
+.playlist-divider {
+    height: 1px;
+    background-color: #282828;
+    margin: 8px 20px 4px;
+}
+
+/* Playlist item */
 .playlist-item {
     display: flex;
     align-items: center;
@@ -478,6 +469,8 @@ button:active {
     transition: background-color 0.15s ease;
     border-radius: 8px;
     margin: 2px 8px;
+    /* Clip the marquee at the item's right edge */
+    overflow: hidden;
 }
 
 .playlist-item:hover {
@@ -494,6 +487,16 @@ button:active {
 
 .playlist-item.active .playlist-item-name {
     color: #1DB954;
+}
+
+/* Image wrapper */
+.playlist-img-wrapper {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 .playlist-item-img {
@@ -518,32 +521,7 @@ button:active {
     color: #535353;
 }
 
-.playlist-section-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #535353;
-    padding: 10px 20px 6px;
-}
-
-.playlist-divider {
-    height: 1px;
-    background-color: #282828;
-    margin: 8px 20px 4px;
-}
-
-/* Image wrapper holds img + overlay */
-.playlist-img-wrapper {
-    position: relative;
-    width: 46px;
-    height: 46px;
-    flex-shrink: 0;
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-/* Play icon overlay */
+/* Play overlay */
 .playlist-img-overlay {
     position: absolute;
     inset: 0;
@@ -553,7 +531,6 @@ button:active {
     justify-content: center;
     opacity: 0;
     transition: opacity 0.18s ease;
-    border-radius: 6px;
 }
 
 .playlist-item:hover .playlist-img-overlay {
@@ -566,21 +543,25 @@ button:active {
     transition: filter 0.18s ease;
 }
 
+/* Info column */
 .playlist-item-info {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    /* Stays clipped normally; marquee handled by item overflow */
     min-width: 0;
     overflow: hidden;
+    /* Fade right edge on hover */
+    transition: mask-image 0.15s ease, -webkit-mask-image 0.15s ease;
 }
 
 .playlist-item:hover .playlist-item-info {
-    /* Replace hard clip with a soft fade on the right edge */
     overflow: visible;
-    mask-image: linear-gradient(to right, black 75%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 75%, transparent 100%);
+    mask-image: linear-gradient(to right, black 60%, transparent 95%);
+    -webkit-mask-image: linear-gradient(to right, black 60%, transparent 95%);
 }
 
+/* Name */
 .playlist-item-name {
     font-size: 14px;
     font-weight: 700;
@@ -589,8 +570,10 @@ button:active {
     overflow: hidden;
     text-overflow: ellipsis;
     transition: color 0.2s ease;
+    display: block;
 }
 
+/* When JS detects overflow, swap to marquee */
 .playlist-item-name.overflowing {
     overflow: visible;
     text-overflow: clip;
@@ -618,6 +601,7 @@ button:active {
 .playlist-item-meta {
     font-size: 12px;
     color: #b3b3b3;
+    white-space: nowrap;
 }
 
 /* ── Logout button ──────────────────────────── */

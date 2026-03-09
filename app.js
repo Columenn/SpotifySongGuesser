@@ -4,6 +4,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const redirectUri = window.location.origin + window.location.pathname;
     const SCOPES = 'user-read-currently-playing user-modify-playback-state user-read-private playlist-read-private playlist-read-collaborative';
 
+    // ── Logger ────────────────────────────────────────────────
+    const Log = {
+        _entry(level, area, msg, data) {
+            const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+            const prefix = `[${ts}] [${level}] [${area}]`;
+            if (data !== undefined) {
+                console[level === 'ERROR' ? 'error' : level === 'WARN' ? 'warn' : 'log'](prefix, msg, data);
+            } else {
+                console[level === 'ERROR' ? 'error' : level === 'WARN' ? 'warn' : 'log'](prefix, msg);
+            }
+        },
+        info: (area, msg, data) => Log._entry('INFO', area, msg, data),
+        warn: (area, msg, data) => Log._entry('WARN', area, msg, data),
+        error: (area, msg, data) => Log._entry('ERROR', area, msg, data),
+    };
+
     // DOM Elements
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
@@ -54,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Auth ──────────────────────────────────────────────────
     loginBtn.addEventListener('click', async () => {
+        Log.info('Auth', 'Login button clicked, starting PKCE flow');
         const verifier = generateRandomString(64);
         const challenge = await generateCodeChallenge(verifier);
         localStorage.setItem('spotify_pkce_verifier', verifier);
@@ -70,13 +87,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     logoutBtn.addEventListener('click', () => {
+        Log.info('Auth', 'User logged out');
         clearInterval(checkInterval);
         clearStoredAuth();
     });
 
     async function exchangeCodeForToken(code) {
+        Log.info('Auth', 'Exchanging authorization code for token');
         const verifier = localStorage.getItem('spotify_pkce_verifier');
-        if (!verifier) throw new Error('No PKCE verifier found');
+        if (!verifier) {
+            Log.error('Auth', 'No PKCE verifier found in localStorage');
+            throw new Error('No PKCE verifier found');
+        }
 
         const response = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
@@ -89,14 +111,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 code_verifier: verifier,
             }),
         });
-        if (!response.ok) throw new Error('Token exchange failed');
+
+        if (!response.ok) {
+            const body = await response.text().catch(() => '(unreadable)');
+            Log.error('Auth', `Token exchange failed — HTTP ${response.status}`, body);
+            throw new Error('Token exchange failed');
+        }
+
+        Log.info('Auth', 'Token exchange successful');
         return response.json();
     }
 
     async function refreshAccessToken() {
         const refreshToken = localStorage.getItem('spotify_refresh_token');
-        if (!refreshToken) return false;
+        if (!refreshToken) {
+            Log.warn('Auth', 'Attempted token refresh but no refresh token found');
+            return false;
+        }
         try {
+            Log.info('Auth', 'Refreshing access token');
             const response = await fetch('https://accounts.spotify.com/api/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -106,10 +139,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     refresh_token: refreshToken,
                 }),
             });
-            if (!response.ok) return false;
+            if (!response.ok) {
+                const body = await response.text().catch(() => '(unreadable)');
+                Log.error('Auth', `Token refresh failed — HTTP ${response.status}`, body);
+                return false;
+            }
             saveTokens(await response.json());
+            Log.info('Auth', 'Token refreshed successfully');
             return true;
-        } catch { return false; }
+        } catch (err) {
+            Log.error('Auth', 'Token refresh threw an exception', err);
+            return false;
+        }
     }
 
     function saveTokens(data) {
@@ -118,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (data.refresh_token) localStorage.setItem('spotify_refresh_token', data.refresh_token);
         const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
         localStorage.setItem('spotify_token_expires_at', expiresAt.toString());
+        Log.info('Auth', `Tokens saved — expires in ${data.expires_in}s`);
     }
 
     function isTokenExpired() {
@@ -127,14 +169,21 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Premium check ─────────────────────────────────────────
     async function checkPremium() {
         try {
+            Log.info('Premium', 'Checking Spotify account type');
             const res = await fetch('https://api.spotify.com/v1/me', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            if (!res.ok) return;
+            if (!res.ok) {
+                Log.error('Premium', `/v1/me returned HTTP ${res.status}`);
+                return;
+            }
             const data = await res.json();
             isPremium = data.product === 'premium';
             localStorage.setItem('spotify_is_premium', isPremium ? 'true' : 'false');
-        } catch (err) { console.error('Premium check failed:', err); }
+            Log.info('Premium', `Account type: ${data.product} — isPremium: ${isPremium}`);
+        } catch (err) {
+            Log.error('Premium', 'Exception during premium check', err);
+        }
     }
 
     async function checkAuth() {
@@ -142,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const code = params.get('code');
 
         if (code) {
+            Log.info('Auth', 'Authorization code detected in URL, completing login');
             window.history.replaceState({}, document.title, window.location.pathname);
             try {
                 const tokenData = await exchangeCodeForToken(code);
@@ -150,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 await checkPremium();
                 startMonitoring();
             } catch (err) {
-                console.error('Auth error:', err);
+                Log.error('Auth', 'Login flow failed', err);
                 statusDiv.textContent = 'Login failed. Please try again.';
             }
             return;
@@ -158,17 +208,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
         accessToken = localStorage.getItem('spotify_access_token');
         if (accessToken) {
+            Log.info('Auth', 'Existing token found in localStorage');
             if (isTokenExpired()) {
+                Log.warn('Auth', 'Stored token is expired — attempting refresh');
                 const refreshed = await refreshAccessToken();
-                if (!refreshed) { clearStoredAuth(); return; }
+                if (!refreshed) {
+                    Log.error('Auth', 'Token refresh failed — clearing session');
+                    clearStoredAuth();
+                    return;
+                }
             }
             isPremium = localStorage.getItem('spotify_is_premium') === 'true';
-            checkPremium();
+            Log.info('Auth', `Restored session — cached isPremium: ${isPremium}`);
+            checkPremium(); // re-verify in background
             startMonitoring();
+        } else {
+            Log.info('Auth', 'No stored token — showing login screen');
         }
     }
 
     function clearStoredAuth() {
+        Log.info('Auth', 'Clearing all stored auth data');
         localStorage.removeItem('spotify_access_token');
         localStorage.removeItem('spotify_refresh_token');
         localStorage.removeItem('spotify_token_expires_at');
@@ -182,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function startMonitoring() {
+        Log.info('Player', 'Starting playback monitoring (2s interval)');
         authSection.classList.add('hidden');
         gameSection.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
@@ -204,8 +265,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function checkCurrentlyPlaying() {
         if (isTokenExpired()) {
+            Log.warn('Player', 'Token expired before polling — refreshing');
             const refreshed = await refreshAccessToken();
             if (!refreshed) {
+                Log.error('Player', 'Could not refresh token — stopping monitoring');
                 clearInterval(checkInterval);
                 clearStoredAuth();
                 statusDiv.textContent = 'Session expired. Please login again.';
@@ -221,8 +284,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (response.status === 200) {
                 const data = await response.json();
                 if (data.item) {
-                    // Track changed — reset card
                     if (currentTrackId && data.item.id !== currentTrackId) {
+                        Log.info('Player', `Track changed: "${data.item.name}" by ${data.item.artists.map(a => a.name).join(', ')}`);
                         isShowingInfo = false;
                         songInfo.classList.add('hidden');
                         songInfo.classList.remove('revealed', 'revealing');
@@ -242,15 +305,19 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (response.status === 204) {
                 resetToIdle();
             } else if (response.status === 401) {
+                Log.warn('Player', 'Polling returned 401 — refreshing token');
                 const refreshed = await refreshAccessToken();
                 if (!refreshed) {
+                    Log.error('Player', '401 refresh failed — stopping monitoring');
                     clearInterval(checkInterval);
                     clearStoredAuth();
                     statusDiv.textContent = 'Session expired. Please login again.';
                 }
+            } else {
+                Log.warn('Player', `Unexpected polling status: ${response.status}`);
             }
         } catch (error) {
-            console.error('Error checking currently playing:', error);
+            Log.error('Player', 'Exception during playback poll', error);
             statusDiv.textContent = 'Error checking playback status';
         }
     }
@@ -292,7 +359,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Controls ──────────────────────────────────────────────
     async function ensureFreshToken() {
-        if (isTokenExpired()) await refreshAccessToken();
+        if (isTokenExpired()) {
+            Log.warn('Controls', 'Token expired before action — refreshing');
+            await refreshAccessToken();
+        }
     }
 
     async function skipToNext() {
@@ -300,17 +370,21 @@ document.addEventListener('DOMContentLoaded', function () {
         skipBtn.classList.add('pressed');
         setTimeout(() => skipBtn.classList.remove('pressed'), 150);
         try {
-            await fetch('https://api.spotify.com/v1/me/player/next', {
+            Log.info('Controls', 'Skipping to next track');
+            const res = await fetch('https://api.spotify.com/v1/me/player/next', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
+            if (!res.ok) Log.error('Controls', `Skip failed — HTTP ${res.status}`);
             songInfo.classList.add('hidden');
             songInfo.classList.remove('revealed', 'revealing');
             cardBg.classList.remove('loaded');
             isShowingInfo = false;
             currentTrackId = null;
             setRevealLoading(true);
-        } catch (err) { console.error('Skip error:', err); }
+        } catch (err) {
+            Log.error('Controls', 'Exception during skip', err);
+        }
     }
 
     async function restartSong() {
@@ -318,11 +392,15 @@ document.addEventListener('DOMContentLoaded', function () {
         restartBtn.classList.add('pressed');
         setTimeout(() => restartBtn.classList.remove('pressed'), 150);
         try {
-            await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=0', {
+            Log.info('Controls', 'Restarting current track');
+            const res = await fetch('https://api.spotify.com/v1/me/player/seek?position_ms=0', {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-        } catch (err) { console.error('Restart error:', err); }
+            if (!res.ok) Log.error('Controls', `Restart failed — HTTP ${res.status}`);
+        } catch (err) {
+            Log.error('Controls', 'Exception during restart', err);
+        }
     }
 
     async function togglePlayPause() {
@@ -330,57 +408,55 @@ document.addEventListener('DOMContentLoaded', function () {
         playpauseBtn.classList.add('pressed');
         setTimeout(() => playpauseBtn.classList.remove('pressed'), 150);
         try {
+            const action = isPlaying ? 'pause' : 'play';
             const endpoint = isPlaying
                 ? 'https://api.spotify.com/v1/me/player/pause'
                 : 'https://api.spotify.com/v1/me/player/play';
-            await fetch(endpoint, {
+            Log.info('Controls', `Toggling playback: ${action}`);
+            const res = await fetch(endpoint, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
+            if (!res.ok) Log.error('Controls', `Play/pause failed — HTTP ${res.status}`);
             setPlayingState(!isPlaying);
-        } catch (err) { console.error('Play/pause error:', err); }
+        } catch (err) {
+            Log.error('Controls', 'Exception during play/pause toggle', err);
+        }
     }
 
     // ── Reveal ────────────────────────────────────────────────
     revealBtn.addEventListener('click', () => {
         if (!currentTrack) return;
 
+        Log.info('Reveal', `Revealing: "${currentTrack.name}" (${currentTrack.album.release_date.slice(0, 4)})`);
+
         artistSpan.textContent = currentTrack.artists.map(a => a.name).join(', ');
         yearSpan.textContent = currentTrack.album.release_date.split('-')[0];
         songNameSpan.textContent = currentTrack.name;
 
-        // Set album art as blurred card background
         const albumArt = currentTrack.album.images[0]?.url;
         if (albumArt) {
             cardBg.style.backgroundImage = `url(${albumArt})`;
+        } else {
+            Log.warn('Reveal', 'No album art found for current track');
         }
 
-        // Reset animation classes
         songInfo.classList.remove('revealed', 'revealing');
         songInfo.classList.remove('hidden');
         revealBtn.classList.add('hidden');
         isShowingInfo = true;
 
-        // 1. Card pops in
         requestAnimationFrame(() => {
             songInfo.classList.add('revealing');
+            requestAnimationFrame(() => { cardBg.classList.add('loaded'); });
+            setTimeout(() => { songInfo.classList.add('revealed'); }, 80);
 
-            // 2. Fade in the album art bg
-            requestAnimationFrame(() => {
-                cardBg.classList.add('loaded');
-            });
-
-            // 3. Staggered text slides up
-            setTimeout(() => {
-                songInfo.classList.add('revealed');
-            }, 80);
-
-            // 4. Controls bar slides up
             const controlsBar = document.getElementById('controls-bar');
             if (isPremium) {
                 controlsBar.classList.remove('hidden');
                 setTimeout(() => controlsBar.classList.add('visible'), 100);
             } else {
+                Log.info('Reveal', 'Controls bar hidden — non-premium account');
                 controlsBar.classList.add('hidden');
                 controlsBar.classList.remove('visible');
             }
@@ -393,6 +469,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Playlist panel ────────────────────────────────────────
     function openPlaylistPanel() {
+        Log.info('Playlists', 'Opening playlist panel');
         playlistPanel.classList.remove('hidden');
         playlistOverlay.classList.remove('hidden');
         requestAnimationFrame(() => {
@@ -403,6 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function closePlaylistPanel() {
+        Log.info('Playlists', 'Closing playlist panel');
         playlistPanel.classList.remove('open');
         playlistOverlay.classList.remove('visible');
         setTimeout(() => {
@@ -421,35 +499,60 @@ document.addEventListener('DOMContentLoaded', function () {
             '3Pft9VkD2PXIK9EPOlVo9Z',
             '26zIHVncgI9HmHlgYWwnDi',
             '2jlbmBYM1RLZrsyY67wuDQ',
-            '37i9dQZEVXbMDoHDwVN2tF',
-            '0h4Cwla6c6Yy1QW7mihUsP',
+            '37i9dQZF1DXdfOcg1fm0VG',
         ];
 
         try {
             await ensureFreshToken();
 
-            // Fetch featured playlists, silently drop any that 404 or fail
+            // Fetch featured playlists in parallel — silently drop failures
+            Log.info('Playlists', `Fetching ${FEATURED_IDS.length} featured playlists`);
             const featuredResults = await Promise.all(
-                FEATURED_IDS.map(id =>
-                    fetch(`https://api.spotify.com/v1/playlists/${id}?fields=uri,name,images,tracks.total`, {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    })
-                        .then(r => r.ok ? r.json() : null)
-                        .catch(() => null)
-                )
+                FEATURED_IDS.map(async id => {
+                    try {
+                        const res = await fetch(
+                            `https://api.spotify.com/v1/playlists/${id}?fields=uri,name,images,tracks.total`,
+                            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                        );
+                        if (res.status === 404) {
+                            Log.warn('Playlists', `Featured playlist not found (deleted?): ${id}`);
+                            return null;
+                        }
+                        if (res.status === 403) {
+                            Log.warn('Playlists', `Featured playlist access denied (private?): ${id}`);
+                            return null;
+                        }
+                        if (!res.ok) {
+                            Log.error('Playlists', `Featured playlist fetch failed — HTTP ${res.status} for ID: ${id}`);
+                            return null;
+                        }
+                        const data = await res.json();
+                        Log.info('Playlists', `Loaded featured playlist: "${data.name}" (${id})`);
+                        return data;
+                    } catch (err) {
+                        Log.error('Playlists', `Exception fetching featured playlist ${id}`, err);
+                        return null;
+                    }
+                })
             );
+
             const featured = featuredResults.filter(Boolean);
+            Log.info('Playlists', `${featured.length}/${FEATURED_IDS.length} featured playlists loaded successfully`);
 
             // Fetch first page of user playlists
+            Log.info('Playlists', 'Fetching user playlists (page 1)');
             const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=50&offset=0', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            if (!res.ok) throw new Error('Failed to fetch playlists');
+            if (!res.ok) {
+                Log.error('Playlists', `User playlists fetch failed — HTTP ${res.status}`);
+                throw new Error('Failed to fetch playlists');
+            }
             const data = await res.json();
+            Log.info('Playlists', `Loaded ${data.items.length} user playlists (total: ${data.total})`);
 
             playlistList.innerHTML = '';
 
-            // Featured section
             if (featured.length) {
                 const featuredHeader = document.createElement('div');
                 featuredHeader.className = 'playlist-section-label';
@@ -460,19 +563,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 const divider = document.createElement('div');
                 divider.className = 'playlist-divider';
                 playlistList.appendChild(divider);
+            } else {
+                Log.warn('Playlists', 'No featured playlists available — section hidden');
             }
 
-            // User playlists section
             const userHeader = document.createElement('div');
             userHeader.className = 'playlist-section-label';
             userHeader.textContent = 'Your Playlists';
             playlistList.appendChild(userHeader);
 
             appendPlaylistItems(data.items);
-            if (data.next) appendLoadSentinel(data.next);
+            if (data.next) {
+                Log.info('Playlists', 'More user playlists available — attaching scroll sentinel');
+                appendLoadSentinel(data.next);
+            }
 
         } catch (err) {
-            console.error('Playlist fetch error:', err);
+            Log.error('Playlists', 'Fatal error loading playlist panel', err);
             playlistList.innerHTML = `<p style="color:#b3b3b3;text-align:center;padding:20px;font-size:13px;">Could not load playlists.</p>`;
         }
     }
@@ -480,7 +587,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let sentinelObserver = null;
 
     function appendLoadSentinel(nextUrl) {
-        // Disconnect any existing observer
         if (sentinelObserver) sentinelObserver.disconnect();
 
         const sentinel = document.createElement('div');
@@ -498,15 +604,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
                 await ensureFreshToken();
+                Log.info('Playlists', `Loading next page: ${nextUrl}`);
                 const res = await fetch(nextUrl, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
-                if (!res.ok) return;
+                if (!res.ok) {
+                    Log.error('Playlists', `Paginated playlist fetch failed — HTTP ${res.status}`);
+                    return;
+                }
                 const data = await res.json();
+                Log.info('Playlists', `Loaded ${data.items.length} more playlists`);
                 appendPlaylistItems(data.items);
                 if (data.next) appendLoadSentinel(data.next);
             } catch (err) {
-                console.error('Playlist page fetch error:', err);
+                Log.error('Playlists', 'Exception during paginated playlist fetch', err);
             }
         }, { root: playlistList, threshold: 0.1 });
 
@@ -545,7 +656,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 imgWrapper.appendChild(placeholder);
             }
 
-            // Play icon overlay
             const overlay = document.createElement('div');
             overlay.className = 'playlist-img-overlay';
             overlay.innerHTML = PLAY_ICON_SVG;
@@ -561,6 +671,7 @@ document.addEventListener('DOMContentLoaded', function () {
             item.appendChild(info);
             playlistList.appendChild(item);
 
+            // Marquee on hover
             item.addEventListener('mouseenter', () => {
                 const nameEl = item.querySelector('.playlist-item-name');
                 const overflow = nameEl.scrollWidth - nameEl.clientWidth;
@@ -572,11 +683,11 @@ document.addEventListener('DOMContentLoaded', function () {
             item.addEventListener('mouseleave', () => {
                 const nameEl = item.querySelector('.playlist-item-name');
                 nameEl.classList.remove('overflowing');
-                nameEl.style.removeProperty('transform');
                 nameEl.style.removeProperty('--marquee-offset');
             });
 
             item.addEventListener('click', () => {
+                Log.info('Playlists', `User selected playlist: "${p.name}" (${p.uri})`);
                 playPlaylist(p.uri);
                 playlistList.querySelectorAll('.playlist-item').forEach(i => {
                     i.classList.remove('active');
@@ -593,7 +704,8 @@ document.addEventListener('DOMContentLoaded', function () {
     async function playPlaylist(uri) {
         await ensureFreshToken();
         try {
-            await fetch('https://api.spotify.com/v1/me/player/play', {
+            Log.info('Playlists', `Starting playlist: ${uri}`);
+            const res = await fetch('https://api.spotify.com/v1/me/player/play', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
@@ -601,7 +713,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({ context_uri: uri, offset: { position: 0 }, position_ms: 0 })
             });
-            // Reset card so user guesses the new song
+            if (!res.ok) {
+                const body = await res.text().catch(() => '(unreadable)');
+                Log.error('Playlists', `Play playlist failed — HTTP ${res.status}`, body);
+                return;
+            }
+            Log.info('Playlists', 'Playlist started successfully');
             songInfo.classList.add('hidden');
             songInfo.classList.remove('revealed', 'revealing');
             cardBg.classList.remove('loaded');
@@ -609,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentTrackId = null;
             setRevealLoading(true);
         } catch (err) {
-            console.error('Play playlist error:', err);
+            Log.error('Playlists', 'Exception while starting playlist', err);
         }
     }
 
