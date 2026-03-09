@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Spotify API Config
     const clientId = '9a32bf6e17ca48aeb3c4492943d58d97';
     const redirectUri = window.location.origin + window.location.pathname;
-    const SCOPES = 'user-read-currently-playing user-modify-playback-state user-read-private';
+    const SCOPES = 'user-read-currently-playing user-modify-playback-state user-read-private playlist-read-private playlist-read-collaborative';
 
     // DOM Elements
     const loginBtn = document.getElementById('login-btn');
@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const playpauseBtn = document.getElementById('playpause-btn');
     const playIcon = document.getElementById('play-icon');
     const pauseIcon = document.getElementById('pause-icon');
+    const playlistBtn = document.getElementById('playlist-btn');
+    const playlistPanel = document.getElementById('playlist-panel');
+    const playlistOverlay = document.getElementById('playlist-overlay');
+    const playlistCloseBtn = document.getElementById('playlist-close-btn');
+    const playlistList = document.getElementById('playlist-list');
 
     let accessToken = null;
     let currentTrack = null;
@@ -29,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let isShowingInfo = false;
     let isPremium = false;
     let isPlaying = false;
+    let activePlaylistUri = null;
 
     // ── PKCE Helpers ──────────────────────────────────────────
     function generateRandomString(length) {
@@ -172,12 +178,14 @@ document.addEventListener('DOMContentLoaded', function () {
         authSection.classList.remove('hidden');
         gameSection.classList.add('hidden');
         logoutBtn.classList.add('hidden');
+        playlistBtn.classList.add('hidden');
     }
 
     function startMonitoring() {
         authSection.classList.add('hidden');
         gameSection.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
+        playlistBtn.classList.remove('hidden');
         checkInterval = setInterval(checkCurrentlyPlaying, 2000);
         checkCurrentlyPlaying();
     }
@@ -382,6 +390,112 @@ document.addEventListener('DOMContentLoaded', function () {
     skipBtn.addEventListener('click', skipToNext);
     restartBtn.addEventListener('click', restartSong);
     playpauseBtn.addEventListener('click', togglePlayPause);
+
+    // ── Playlist panel ────────────────────────────────────────
+    function openPlaylistPanel() {
+        playlistPanel.classList.remove('hidden');
+        playlistOverlay.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            playlistOverlay.classList.add('visible');
+            playlistPanel.classList.add('open');
+        });
+        fetchPlaylists();
+    }
+
+    function closePlaylistPanel() {
+        playlistPanel.classList.remove('open');
+        playlistOverlay.classList.remove('visible');
+        setTimeout(() => {
+            playlistPanel.classList.add('hidden');
+            playlistOverlay.classList.add('hidden');
+        }, 350);
+    }
+
+    async function fetchPlaylists() {
+        playlistList.innerHTML = `
+            <div class="playlist-loading">
+                <span class="dot">●</span><span class="dot">●</span><span class="dot">●</span>
+            </div>`;
+        try {
+            await ensureFreshToken();
+            const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!res.ok) throw new Error('Failed to fetch playlists');
+            const data = await res.json();
+            renderPlaylists(data.items);
+        } catch (err) {
+            console.error('Playlist fetch error:', err);
+            playlistList.innerHTML = `<p style="color:#b3b3b3;text-align:center;padding:20px;font-size:13px;">Could not load playlists.</p>`;
+        }
+    }
+
+    function renderPlaylists(playlists) {
+        if (!playlists.length) {
+            playlistList.innerHTML = `<p style="color:#b3b3b3;text-align:center;padding:20px;font-size:13px;">No playlists found.</p>`;
+            return;
+        }
+        playlistList.innerHTML = playlists.map(p => {
+            const img = p.images?.[0]?.url;
+            const isActive = p.uri === activePlaylistUri;
+            const imgEl = img
+                ? `<img class="playlist-item-img" src="${img}" alt="${p.name}" loading="lazy">`
+                : `<div class="playlist-item-img-placeholder">
+                       <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                           <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                       </svg>
+                   </div>`;
+            return `
+                <div class="playlist-item${isActive ? ' active' : ''}" data-uri="${p.uri}">
+                    ${imgEl}
+                    <div class="playlist-item-info">
+                        <div class="playlist-item-name">${p.name}</div>
+                        <div class="playlist-item-meta">${p.tracks.total} songs</div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        // Attach click handlers
+        playlistList.querySelectorAll('.playlist-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const uri = el.dataset.uri;
+                playPlaylist(uri);
+                // Mark active
+                playlistList.querySelectorAll('.playlist-item').forEach(i => i.classList.remove('active'));
+                el.classList.add('active');
+                el.querySelector('.playlist-item-name').style.color = '#1DB954';
+                activePlaylistUri = uri;
+                setTimeout(closePlaylistPanel, 300);
+            });
+        });
+    }
+
+    async function playPlaylist(uri) {
+        await ensureFreshToken();
+        try {
+            await fetch('https://api.spotify.com/v1/me/player/play', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ context_uri: uri, offset: { position: 0 }, position_ms: 0 })
+            });
+            // Reset card so user guesses the new song
+            songInfo.classList.add('hidden');
+            songInfo.classList.remove('revealed', 'revealing');
+            cardBg.classList.remove('loaded');
+            isShowingInfo = false;
+            currentTrackId = null;
+            setRevealLoading(true);
+        } catch (err) {
+            console.error('Play playlist error:', err);
+        }
+    }
+
+    playlistBtn.addEventListener('click', openPlaylistPanel);
+    playlistCloseBtn.addEventListener('click', closePlaylistPanel);
+    playlistOverlay.addEventListener('click', closePlaylistPanel);
 
     checkAuth();
 });
