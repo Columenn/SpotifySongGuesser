@@ -570,8 +570,15 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    overflow: hidden;
     min-width: 0;
+    overflow: hidden;
+}
+
+.playlist-item:hover .playlist-item-info {
+    /* Replace hard clip with a soft fade on the right edge */
+    overflow: visible;
+    mask-image: linear-gradient(to right, black 75%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 75%, transparent 100%);
 }
 
 .playlist-item-name {
@@ -582,15 +589,11 @@ button:active {
     overflow: hidden;
     text-overflow: ellipsis;
     transition: color 0.2s ease;
-    display: block;
 }
 
 .playlist-item-name.overflowing {
-    text-overflow: clip;
     overflow: visible;
-    /* Fade out at right edge using a mask so scroll feels natural */
-    mask-image: linear-gradient(to right, black 70%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 70%, transparent 100%);
+    text-overflow: clip;
     animation: marquee-scroll 4s linear infinite;
 }
 
