@@ -416,20 +416,60 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="playlist-loading">
                 <span class="dot">●</span><span class="dot">●</span><span class="dot">●</span>
             </div>`;
+
+        const FEATURED_IDS = [
+            '3Pft9VkD2PXIK9EPOlVo9Z',
+            '26zIHVncgI9HmHlgYWwnDi',
+            '2jlbmBYM1RLZrsyY67wuDQ',
+            '37i9dQZF1DXdfOcg1fm0VG',
+        ];
+
         try {
             await ensureFreshToken();
+
+            // Fetch featured playlists, silently drop any that 404 or fail
+            const featuredResults = await Promise.all(
+                FEATURED_IDS.map(id =>
+                    fetch(`https://api.spotify.com/v1/playlists/${id}?fields=uri,name,images,tracks.total`, {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    })
+                        .then(r => r.ok ? r.json() : null)
+                        .catch(() => null)
+                )
+            );
+            const featured = featuredResults.filter(Boolean);
+
+            // Fetch first page of user playlists
             const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=50&offset=0', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             if (!res.ok) throw new Error('Failed to fetch playlists');
             const data = await res.json();
-            playlistList.innerHTML = '';
-            appendPlaylistItems(data.items);
 
-            // If there are more pages, add a sentinel for infinite scroll
-            if (data.next) {
-                appendLoadSentinel(data.next);
+            playlistList.innerHTML = '';
+
+            // Featured section
+            if (featured.length) {
+                const featuredHeader = document.createElement('div');
+                featuredHeader.className = 'playlist-section-label';
+                featuredHeader.textContent = 'Featured';
+                playlistList.appendChild(featuredHeader);
+                appendPlaylistItems(featured);
+
+                const divider = document.createElement('div');
+                divider.className = 'playlist-divider';
+                playlistList.appendChild(divider);
             }
+
+            // User playlists section
+            const userHeader = document.createElement('div');
+            userHeader.className = 'playlist-section-label';
+            userHeader.textContent = 'Your Playlists';
+            playlistList.appendChild(userHeader);
+
+            appendPlaylistItems(data.items);
+            if (data.next) appendLoadSentinel(data.next);
+
         } catch (err) {
             console.error('Playlist fetch error:', err);
             playlistList.innerHTML = `<p style="color:#b3b3b3;text-align:center;padding:20px;font-size:13px;">Could not load playlists.</p>`;
