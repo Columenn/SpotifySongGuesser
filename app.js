@@ -420,8 +420,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const FEATURED_IDS = [
             '3Pft9VkD2PXIK9EPOlVo9Z',
             '26zIHVncgI9HmHlgYWwnDi',
-            '2jlbmBYM1RLZrsyY67wuDQ',
             '37i9dQZF1DXdfOcg1fm0VG',
+            '2jlbmBYM1RLZrsyY67wuDQ',
         ];
 
         try {
@@ -571,7 +571,8 @@ document.addEventListener('DOMContentLoaded', function () {
             item.addEventListener('mouseleave', () => {
                 const nameEl = item.querySelector('.playlist-item-name');
                 nameEl.classList.remove('overflowing');
-                nameEl.style.transform = '';
+                nameEl.style.removeProperty('transform');
+                nameEl.style.removeProperty('--marquee-offset');
             });
 
             item.addEventListener('click', () => {

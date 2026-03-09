@@ -582,16 +582,16 @@ button:active {
     overflow: hidden;
     text-overflow: ellipsis;
     transition: color 0.2s ease;
+    display: block;
 }
 
-.playlist-item:hover .playlist-item-name {
+.playlist-item-name.overflowing {
     text-overflow: clip;
+    overflow: visible;
+    /* Fade out at right edge using a mask so scroll feels natural */
+    mask-image: linear-gradient(to right, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 70%, transparent 100%);
     animation: marquee-scroll 4s linear infinite;
-    animation-play-state: paused;
-}
-
-.playlist-item:hover .playlist-item-name.overflowing {
-    animation-play-state: running;
 }
 
 @keyframes marquee-scroll {
