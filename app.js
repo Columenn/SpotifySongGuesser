@@ -560,6 +560,20 @@ document.addEventListener('DOMContentLoaded', function () {
             item.appendChild(info);
             playlistList.appendChild(item);
 
+            item.addEventListener('mouseenter', () => {
+                const nameEl = item.querySelector('.playlist-item-name');
+                const overflow = nameEl.scrollWidth - nameEl.clientWidth;
+                if (overflow > 0) {
+                    nameEl.classList.add('overflowing');
+                    nameEl.style.setProperty('--marquee-offset', `-${overflow + 16}px`);
+                }
+            });
+            item.addEventListener('mouseleave', () => {
+                const nameEl = item.querySelector('.playlist-item-name');
+                nameEl.classList.remove('overflowing');
+                nameEl.style.transform = '';
+            });
+
             item.addEventListener('click', () => {
                 playPlaylist(p.uri);
                 playlistList.querySelectorAll('.playlist-item').forEach(i => {

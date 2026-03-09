@@ -584,6 +584,34 @@ button:active {
     transition: color 0.2s ease;
 }
 
+.playlist-item:hover .playlist-item-name {
+    text-overflow: clip;
+    animation: marquee-scroll 4s linear infinite;
+    animation-play-state: paused;
+}
+
+.playlist-item:hover .playlist-item-name.overflowing {
+    animation-play-state: running;
+}
+
+@keyframes marquee-scroll {
+    0% {
+        transform: translateX(0);
+    }
+
+    15% {
+        transform: translateX(0);
+    }
+
+    85% {
+        transform: translateX(var(--marquee-offset));
+    }
+
+    100% {
+        transform: translateX(var(--marquee-offset));
+    }
+}
+
 .playlist-item-meta {
     font-size: 12px;
     color: #b3b3b3;
