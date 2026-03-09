@@ -503,6 +503,7 @@ button:active {
     object-fit: cover;
     flex-shrink: 0;
     background-color: #282828;
+    display: block;
 }
 
 .playlist-item-img-placeholder {
@@ -515,6 +516,39 @@ button:active {
     align-items: center;
     justify-content: center;
     color: #535353;
+}
+
+/* Image wrapper holds img + overlay */
+.playlist-img-wrapper {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* Play icon overlay */
+.playlist-img-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    border-radius: 6px;
+}
+
+.playlist-item:hover .playlist-img-overlay {
+    opacity: 1;
+}
+
+.playlist-item:hover .playlist-img-wrapper img,
+.playlist-item:hover .playlist-img-wrapper .playlist-item-img-placeholder {
+    filter: brightness(0.65);
+    transition: filter 0.18s ease;
 }
 
 .playlist-item-info {

@@ -418,53 +418,117 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>`;
         try {
             await ensureFreshToken();
-            const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
+            const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=50&offset=0', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             if (!res.ok) throw new Error('Failed to fetch playlists');
             const data = await res.json();
-            renderPlaylists(data.items);
+            playlistList.innerHTML = '';
+            appendPlaylistItems(data.items);
+
+            // If there are more pages, add a sentinel for infinite scroll
+            if (data.next) {
+                appendLoadSentinel(data.next);
+            }
         } catch (err) {
             console.error('Playlist fetch error:', err);
             playlistList.innerHTML = `<p style="color:#b3b3b3;text-align:center;padding:20px;font-size:13px;">Could not load playlists.</p>`;
         }
     }
 
-    function renderPlaylists(playlists) {
-        if (!playlists.length) {
-            playlistList.innerHTML = `<p style="color:#b3b3b3;text-align:center;padding:20px;font-size:13px;">No playlists found.</p>`;
-            return;
-        }
-        playlistList.innerHTML = playlists.map(p => {
-            const img = p.images?.[0]?.url;
-            const isActive = p.uri === activePlaylistUri;
-            const imgEl = img
-                ? `<img class="playlist-item-img" src="${img}" alt="${p.name}" loading="lazy">`
-                : `<div class="playlist-item-img-placeholder">
-                       <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-                           <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
-                       </svg>
-                   </div>`;
-            return `
-                <div class="playlist-item${isActive ? ' active' : ''}" data-uri="${p.uri}">
-                    ${imgEl}
-                    <div class="playlist-item-info">
-                        <div class="playlist-item-name">${p.name}</div>
-                        <div class="playlist-item-meta">${p.tracks.total} songs</div>
-                    </div>
-                </div>`;
-        }).join('');
+    let sentinelObserver = null;
 
-        // Attach click handlers
-        playlistList.querySelectorAll('.playlist-item').forEach(el => {
-            el.addEventListener('click', () => {
-                const uri = el.dataset.uri;
-                playPlaylist(uri);
-                // Mark active
-                playlistList.querySelectorAll('.playlist-item').forEach(i => i.classList.remove('active'));
-                el.classList.add('active');
-                el.querySelector('.playlist-item-name').style.color = '#1DB954';
-                activePlaylistUri = uri;
+    function appendLoadSentinel(nextUrl) {
+        // Disconnect any existing observer
+        if (sentinelObserver) sentinelObserver.disconnect();
+
+        const sentinel = document.createElement('div');
+        sentinel.className = 'playlist-sentinel';
+        sentinel.innerHTML = `
+            <div class="playlist-loading" style="padding:16px 0;">
+                <span class="dot">●</span><span class="dot">●</span><span class="dot">●</span>
+            </div>`;
+        playlistList.appendChild(sentinel);
+
+        sentinelObserver = new IntersectionObserver(async (entries) => {
+            if (!entries[0].isIntersecting) return;
+            sentinelObserver.disconnect();
+            sentinel.remove();
+
+            try {
+                await ensureFreshToken();
+                const res = await fetch(nextUrl, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                appendPlaylistItems(data.items);
+                if (data.next) appendLoadSentinel(data.next);
+            } catch (err) {
+                console.error('Playlist page fetch error:', err);
+            }
+        }, { root: playlistList, threshold: 0.1 });
+
+        sentinelObserver.observe(sentinel);
+    }
+
+    function appendPlaylistItems(playlists) {
+        const PLAY_ICON_SVG = `
+            <svg viewBox="0 0 24 24" fill="white" width="22" height="22">
+                <path d="M8 5v14l11-7z"/>
+            </svg>`;
+
+        playlists.forEach(p => {
+            if (!p) return;
+            const isActive = p.uri === activePlaylistUri;
+            const img = p.images?.[0]?.url;
+
+            const item = document.createElement('div');
+            item.className = `playlist-item${isActive ? ' active' : ''}`;
+            item.dataset.uri = p.uri;
+
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'playlist-img-wrapper';
+
+            if (img) {
+                const imgEl = document.createElement('img');
+                imgEl.className = 'playlist-item-img';
+                imgEl.alt = p.name;
+                imgEl.loading = 'lazy';
+                imgEl.src = img;
+                imgWrapper.appendChild(imgEl);
+            } else {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'playlist-item-img-placeholder';
+                placeholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>`;
+                imgWrapper.appendChild(placeholder);
+            }
+
+            // Play icon overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'playlist-img-overlay';
+            overlay.innerHTML = PLAY_ICON_SVG;
+            imgWrapper.appendChild(overlay);
+
+            const info = document.createElement('div');
+            info.className = 'playlist-item-info';
+            info.innerHTML = `
+                <div class="playlist-item-name">${p.name}</div>
+                <div class="playlist-item-meta">${p.tracks.total} songs</div>`;
+
+            item.appendChild(imgWrapper);
+            item.appendChild(info);
+            playlistList.appendChild(item);
+
+            item.addEventListener('click', () => {
+                playPlaylist(p.uri);
+                playlistList.querySelectorAll('.playlist-item').forEach(i => {
+                    i.classList.remove('active');
+                    i.querySelector('.playlist-item-name').style.color = '';
+                });
+                item.classList.add('active');
+                item.querySelector('.playlist-item-name').style.color = '#1DB954';
+                activePlaylistUri = p.uri;
                 setTimeout(closePlaylistPanel, 300);
             });
         });
